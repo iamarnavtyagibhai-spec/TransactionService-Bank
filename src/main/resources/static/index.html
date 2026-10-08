@@ -3,268 +3,377 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NinjaBank - Distributed Banking & Risk Intelligence Suite</title>
+  <title>NinjaBank - Distributed Banking & Risk Engine</title>
   <link rel="stylesheet" href="./css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥷</text></svg>">
 </head>
 <body>
 
-  <!-- ================= Navigation Bar ================= -->
-  <header class="app-navbar">
-    <div class="brand-wrapper">
-      <div class="brand-logo-icon">🥷</div>
-      <div>
-        <div class="brand-title">NinjaBank <span class="brand-tag">PRO</span></div>
-        <div class="brand-subtitle">Distributed Core Banking & Risk Suite</div>
+  <!-- ========================================================================= -->
+  <!-- SCREEN 1: ONBOARDING & AUTHENTICATION (USER SERVICE)                      -->
+  <!-- Shown when user is NOT logged in                                          -->
+  <!-- ========================================================================= -->
+  <div class="auth-screen-container" id="auth-screen">
+    <div class="auth-box-wrapper">
+      
+      <!-- Brand Header -->
+      <div class="auth-brand-header">
+        <div class="brand-logo-large">🥷</div>
+        <h1 class="auth-title">NinjaBank</h1>
+        <p class="auth-subtitle">Distributed Core Banking & Risk Intelligence Suite</p>
       </div>
-    </div>
 
-    <!-- Cluster Health Live Badges -->
-    <div class="service-health-grid" id="service-health-header">
-      <div class="service-pill" id="pill-user-service" title="User Service (Auth & Identity)">
-        <span class="dot-status warning" id="dot-user"></span>
-        <span class="pill-name">User Service</span>
-        <span class="pill-latency" id="latency-user">...</span>
-      </div>
-      <div class="service-pill" id="pill-account-service" title="Account Service (Balances & Core)">
-        <span class="dot-status warning" id="dot-account"></span>
-        <span class="pill-name">Account Service</span>
-        <span class="pill-latency" id="latency-account">...</span>
-      </div>
-      <div class="service-pill" id="pill-txn-service" title="Transaction Service (Risk Engine)">
-        <span class="dot-status warning" id="dot-txn"></span>
-        <span class="pill-name">Risk Engine</span>
-        <span class="pill-latency" id="latency-txn">...</span>
-      </div>
-    </div>
-
-    <!-- Top Action Buttons -->
-    <div class="auth-user-bar">
-      <button class="btn-secondary btn-sm" id="btn-ping-all" title="Ping all 3 microservices and measure latency">
-        <span>⚡ Ping All</span>
-      </button>
-      <button class="btn-secondary btn-sm" id="btn-open-config" title="Configure endpoints">
-        <span>⚙️ Endpoints</span>
-      </button>
-      <button class="btn-primary btn-sm" id="btn-open-auth">
-        <span id="auth-btn-label">👤 Sign In</span>
-      </button>
-      <button class="btn-secondary btn-sm" id="btn-logout-header" style="display: none;" title="Logout from session">
-        <span>🚪 Logout</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- ================= Navigation Tabs Bar ================= -->
-  <nav class="nav-tabs-wrapper">
-    <div class="nav-tabs-container">
-      <button class="tab-btn active" data-tab="tab-gateway">
-        <span class="tab-icon">🛡️</span>
-        <span class="tab-text">Risk & Transfer Gateway</span>
-      </button>
-      <button class="tab-btn" data-tab="tab-account">
-        <span class="tab-icon">💳</span>
-        <span class="tab-text">Account Service Hub</span>
-        <span class="tab-badge">Core</span>
-      </button>
-      <button class="tab-btn" data-tab="tab-user">
-        <span class="tab-icon">👤</span>
-        <span class="tab-text">User & Auth Portal</span>
-        <span class="tab-badge" id="auth-tab-status">Guest</span>
-      </button>
-      <button class="tab-btn" data-tab="tab-compliance">
-        <span class="tab-icon">⚖️</span>
-        <span class="tab-text">Compliance & Risk Profile</span>
-      </button>
-      <button class="tab-btn" data-tab="tab-ledger">
-        <span class="tab-icon">📜</span>
-        <span class="tab-text">Audit Ledger</span>
-        <span class="tab-counter" id="tab-ledger-count">0</span>
-      </button>
-      <button class="tab-btn" data-tab="tab-cluster">
-        <span class="tab-icon">🌐</span>
-        <span class="tab-text">Cluster Diagnostics</span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- ================= Main App Container ================= -->
-  <main class="app-container">
-
-    <!-- ================= TAB 1: RISK & TRANSFER GATEWAY ================= -->
-    <section class="tab-panel active" id="tab-gateway">
-
-      <!-- Hero Subhead Banner -->
-      <div class="dashboard-hero">
-        <div class="hero-text">
-          <h1>Deterministic Risk & Transfer Studio</h1>
-          <p>Real-time pre-transfer risk assessment (0–100) guarding against unauthorized transfers, velocity anomalies, and new-device fraud.</p>
+      <!-- Microservice Pipeline Banner -->
+      <div class="pipeline-flow-banner">
+        <div class="pipeline-step active">
+          <span class="step-num">1</span>
+          <span class="step-txt">UserService (Auth)</span>
         </div>
-        <div class="hero-meta-badges">
-          <div class="device-indicator-box">
-            <span class="meta-icon">📱</span>
-            <div class="meta-content">
-              <span class="meta-label">Device Fingerprint</span>
-              <code id="display-device-id">Detecting...</code>
-            </div>
-          </div>
-          <div class="device-indicator-box">
-            <span class="meta-icon">🔑</span>
-            <div class="meta-content">
-              <span class="meta-label">Active Session</span>
-              <span id="active-session-email">arnavtyagi96@gmail.com</span>
-            </div>
-          </div>
+        <span class="pipeline-arrow">→</span>
+        <div class="pipeline-step">
+          <span class="step-num">2</span>
+          <span class="step-txt">AccountService (Core)</span>
+        </div>
+        <span class="pipeline-arrow">→</span>
+        <div class="pipeline-step">
+          <span class="step-num">3</span>
+          <span class="step-txt">TransactionService (Risk)</span>
         </div>
       </div>
 
-      <!-- Main Dashboard Grid -->
+      <!-- Auth Card -->
+      <div class="auth-glass-card">
+        
+        <!-- Toggle Tabs: Sign In vs Sign Up -->
+        <div class="auth-tab-switch">
+          <button type="button" class="auth-tab-btn active" id="tab-btn-signin">Sign In</button>
+          <button type="button" class="auth-tab-btn" id="tab-btn-signup">Create Account (Sign Up)</button>
+        </div>
+
+        <!-- FORM 1: SIGN IN -->
+        <form id="form-signin" class="auth-form-body active">
+          <div class="form-group">
+            <label for="signin-email">Email Address</label>
+            <input type="email" id="signin-email" class="form-control" value="arnavtyagi96@gmail.com" placeholder="name@domain.com" required>
+          </div>
+          <div class="form-group">
+            <label for="signin-password">Password</label>
+            <input type="password" id="signin-password" class="form-control" value="Banking@1234" placeholder="Enter your password" required>
+          </div>
+
+          <button type="submit" class="btn-primary w-100 btn-submit-auth" id="btn-submit-signin">
+            🚀 Sign In (User Service)
+          </button>
+
+          <div class="auth-divider">
+            <span>or explore without waiting for cold-start</span>
+          </div>
+
+          <button type="button" class="btn-secondary w-100" id="btn-guest-pass">
+            ⚡ Instant Demo Login
+          </button>
+        </form>
+
+        <!-- FORM 2: SIGN UP (USER SERVICE) -->
+        <form id="form-signup" class="auth-form-body">
+          <div class="form-row-dual">
+            <div class="form-group">
+              <label for="signup-firstname">First Name</label>
+              <input type="text" id="signup-firstname" class="form-control" placeholder="Arnav" required>
+            </div>
+            <div class="form-group">
+              <label for="signup-lastname">Last Name</label>
+              <input type="text" id="signup-lastname" class="form-control" placeholder="Tyagi" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="signup-email">Email Address</label>
+            <input type="email" id="signup-email" class="form-control" placeholder="arnavtyagi@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" class="form-control" placeholder="Minimum 6 characters" required>
+          </div>
+
+          <div class="form-row-dual">
+            <div class="form-group">
+              <label for="signup-phone">Phone Number</label>
+              <input type="tel" id="signup-phone" class="form-control" placeholder="9876543210" required>
+            </div>
+            <div class="form-group">
+              <label for="signup-dob">Date of Birth</label>
+              <input type="date" id="signup-dob" class="form-control" value="2000-01-15" required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary w-100 btn-submit-auth" id="btn-submit-signup">
+            📝 Create Account in UserService
+          </button>
+        </form>
+
+        <!-- FORM 3: OTP VERIFICATION (Shown after signup if needed) -->
+        <form id="form-otp" class="auth-form-body">
+          <div class="otp-notice">
+            <span>📬 6-Digit OTP sent to:</span>
+            <strong id="otp-target-email">user@example.com</strong>
+          </div>
+          <div class="form-group">
+            <label for="otp-input-code">Enter OTP Code</label>
+            <input type="text" id="otp-input-code" class="form-control text-center font-bold font-mono text-lg" placeholder="123456" maxlength="6" required>
+          </div>
+          <button type="submit" class="btn-primary w-100" id="btn-submit-otp">
+            ✅ Verify & Activate Account
+          </button>
+          <button type="button" class="btn-ghost w-100 mt-2 text-xs" id="btn-back-to-signin">
+            ← Back to Sign In
+          </button>
+        </form>
+
+      </div>
+
+      <!-- Live Service Endpoint Indicators -->
+      <div class="auth-endpoints-bar">
+        <span>Target: <code>https://userservice-bank.onrender.com</code></span>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- SCREEN 2: MAIN BANKING APP DASHBOARD                                      -->
+  <!-- Shown when user IS logged in                                              -->
+  <!-- ========================================================================= -->
+  <div class="main-app-screen" id="main-app-screen" style="display: none;">
+
+    <!-- Top App Navigation -->
+    <header class="app-navbar">
+      <div class="brand-wrapper">
+        <div class="brand-logo-icon">🥷</div>
+        <div>
+          <div class="brand-title">NinjaBank <span class="brand-tag">PRO</span></div>
+          <div class="brand-subtitle">Distributed Banking Architecture</div>
+        </div>
+      </div>
+
+      <!-- Live Microservices Health Dots -->
+      <div class="service-health-grid">
+        <div class="service-pill" id="pill-user" title="UserService (Identity & Auth)">
+          <span class="dot-status" id="dot-user"></span>
+          <span>User Service</span>
+          <span class="pill-latency" id="lat-user">...</span>
+        </div>
+        <div class="service-pill" id="pill-account" title="AccountService (Core Banking & Ledger)">
+          <span class="dot-status" id="dot-account"></span>
+          <span>Account Service</span>
+          <span class="pill-latency" id="lat-account">...</span>
+        </div>
+        <div class="service-pill" id="pill-txn" title="TransactionService (Deterministic Risk Engine)">
+          <span class="dot-status" id="dot-txn"></span>
+          <span>Transaction Service</span>
+          <span class="pill-latency" id="lat-txn">...</span>
+        </div>
+      </div>
+
+      <!-- User Session & Logout -->
+      <div class="user-session-bar">
+        <div class="user-avatar-badge">
+          <span class="avatar-icon">👤</span>
+          <div class="avatar-info">
+            <span class="avatar-email" id="header-user-email">arnavtyagi96@gmail.com</span>
+            <span class="avatar-role" id="header-user-role">VERIFIED USER</span>
+          </div>
+        </div>
+        <button class="btn-secondary btn-sm" id="btn-logout" title="Sign out from session">
+          🚪 Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="app-container">
+
+      <!-- Banking Dashboard Grid -->
       <div class="dashboard-grid">
 
-        <!-- Left Column: Core Transfer Execution -->
+        <!-- ================= LEFT COLUMN ================= -->
         <div class="dashboard-left">
 
-          <!-- Sender Account Glance Card -->
+          <!-- 1. ACCOUNT SERVICE CARD (Core Balances & Account Info) -->
           <div class="glass-card mb-4">
             <div class="card-header-flex">
               <div class="card-title-group">
-                <h3>💳 Sender Account Details</h3>
-                <span class="badge-tag live-badge">Live AccountService</span>
+                <h3>💳 Core Account & Balances</h3>
+                <span class="badge-tag live-badge">AccountService</span>
               </div>
               <div class="card-actions-group">
-                <button class="btn-success btn-xs" id="btn-quick-deposit">
-                  + Deposit
+                <button class="btn-success btn-xs" id="btn-action-deposit">
+                  + Add Money (Deposit)
                 </button>
-                <button class="btn-secondary btn-xs" id="btn-quick-withdraw">
-                  - Withdraw
-                </button>
-                <button class="btn-secondary btn-xs" id="btn-refresh-account" title="Refresh balance">
-                  🔄
+                <button class="btn-secondary btn-xs" id="btn-refresh-balance" title="Refresh from Account Service">
+                  🔄 Refresh
                 </button>
               </div>
             </div>
 
-            <div class="account-glance-card">
-              <div class="account-meta">
-                <span class="acc-label">Source Account</span>
-                <span class="acc-num" id="card-acc-num">ACC-1001</span>
-                <span class="acc-name" id="card-acc-name">Loading Account Service...</span>
+            <!-- Virtual Bank Card -->
+            <div class="virtual-bank-card">
+              <div class="card-chip-row">
+                <span class="card-chip"></span>
+                <span class="card-network-brand">NINJA BANK</span>
               </div>
-              <div class="account-balance-view">
-                <span class="acc-label">Live Available Balance</span>
-                <div class="balance-amount" id="card-acc-balance">₹0.00</div>
-                <span class="status-active-pill" id="card-acc-status">CONNECTING</span>
+              <div class="card-balance-display">
+                <span class="card-balance-label">Available Balance (AccountService)</span>
+                <div class="card-balance-val" id="display-balance">₹0.00</div>
+              </div>
+              <div class="card-footer-row">
+                <div>
+                  <span class="card-sub-label">ACCOUNT NUMBER</span>
+                  <span class="card-account-num font-mono" id="display-account-num">ACC-1001</span>
+                </div>
+                <div>
+                  <span class="card-sub-label">HOLDER</span>
+                  <span class="card-holder-name" id="display-holder-name">Arnav Tyagi</span>
+                </div>
+                <div>
+                  <span class="card-sub-label">STATUS</span>
+                  <span class="status-active-pill" id="display-account-status">ACTIVE</span>
+                </div>
               </div>
             </div>
 
-            <!-- Transfer Input Form -->
-            <form id="transfer-form">
+            <!-- Architecture callout -->
+            <div class="arch-tip-banner">
+              <span class="tip-icon">ℹ️</span>
+              <span><strong>AccountService</strong> holds the real balance. When you transfer, <strong>TransactionService</strong> calculates risk, and then instructs <strong>AccountService</strong> to debit/credit!</span>
+            </div>
+          </div>
+
+          <!-- 2. TRANSACTION SERVICE & RISK ENGINE (Send Money) -->
+          <div class="glass-card">
+            <div class="card-header-flex">
+              <div class="card-title-group">
+                <h3>🛡️ Send Money via Transaction Service</h3>
+                <span class="badge-tag" style="background: rgba(99, 102, 241, 0.2); color: var(--primary-light);">Deterministic Risk Engine</span>
+              </div>
+              <div class="device-fingerprint-pill">
+                <span>📱 Device:</span>
+                <code id="display-device-id">DEV-HASH</code>
+              </div>
+            </div>
+
+            <!-- Transfer Form -->
+            <form id="transfer-money-form">
+              
               <div class="form-row-dual">
                 <div class="form-group">
-                  <label for="input-from-acc">From Account Number</label>
-                  <input type="text" id="input-from-acc" class="form-control" value="ACC-1001" required>
+                  <label for="txn-from-account">From Account (Source)</label>
+                  <input type="text" id="txn-from-account" class="form-control" value="ACC-1001" required>
                 </div>
                 <div class="form-group">
-                  <label for="input-to-acc">Beneficiary / Receiver Account</label>
-                  <input type="text" id="input-to-acc" class="form-control" placeholder="e.g. ACC-2002" value="ACC-2002" required>
+                  <label for="txn-to-account">Receiver Account Number</label>
+                  <input type="text" id="txn-to-account" class="form-control" value="ACC-2002" placeholder="e.g. ACC-2002" required>
                 </div>
               </div>
 
-              <!-- Quick Presets for Beneficiaries -->
+              <!-- Beneficiary Quick Chips -->
               <div class="quick-chips-row mb-3">
                 <span class="quick-chip-label">Quick Beneficiary:</span>
-                <button type="button" class="chip-btn" data-fill-to="ACC-2002">ACC-2002 (Frequent)</button>
-                <button type="button" class="chip-btn" data-fill-to="ACC-9999">ACC-9999 (New Receiver)</button>
-                <button type="button" class="chip-btn" data-fill-to="ACC-5555">ACC-5555 (External)</button>
+                <button type="button" class="chip-btn" data-fill-rec="ACC-2002">ACC-2002 (Frequent)</button>
+                <button type="button" class="chip-btn" data-fill-rec="ACC-9999">ACC-9999 (New Receiver +20 Risk)</button>
+                <button type="button" class="chip-btn" data-fill-rec="ACC-5555">ACC-5555 (External)</button>
               </div>
 
               <div class="form-group">
-                <label for="input-amount">Transfer Amount (INR)</label>
+                <label for="txn-amount">Transfer Amount (INR)</label>
                 <div class="input-icon-wrapper">
                   <span class="input-symbol">₹</span>
-                  <input type="number" id="input-amount" class="form-control has-symbol" placeholder="Enter amount" min="1" step="any" value="2500" required>
+                  <input type="number" id="txn-amount" class="form-control has-symbol" value="2500" min="1" step="any" required>
                 </div>
               </div>
 
-              <!-- Quick Amount Preset Chips -->
+              <!-- Amount Preset Chips -->
               <div class="quick-chips-row mb-4">
-                <span class="quick-chip-label">Presets:</span>
-                <button type="button" class="chip-btn" data-amount="500">₹500 (Low)</button>
-                <button type="button" class="chip-btn" data-amount="2500">₹2,500 (Standard)</button>
-                <button type="button" class="chip-btn" data-amount="25000">₹25,000 (Medium)</button>
-                <button type="button" class="chip-btn" data-amount="75000">₹75,000 (High)</button>
-                <button type="button" class="chip-btn" data-amount="150000">₹1,50,000 (Very High)</button>
+                <span class="quick-chip-label">Quick Amounts:</span>
+                <button type="button" class="chip-btn" data-set-amt="500">₹500 (Low Risk)</button>
+                <button type="button" class="chip-btn" data-set-amt="2500">₹2,500 (Normal)</button>
+                <button type="button" class="chip-btn" data-set-amt="25000">₹25,000 (Medium)</button>
+                <button type="button" class="chip-btn" data-set-amt="75000">₹75,000 (High Risk)</button>
+                <button type="button" class="chip-btn" data-set-amt="150000">₹1,50,000 (Very High)</button>
               </div>
 
-              <!-- Real-time Live Risk Gauge Widget -->
+              <!-- LIVE DETERMINISTIC RISK METER GAUGE -->
               <div class="risk-meter-container mb-4">
                 <div class="risk-meter-header">
                   <div>
                     <div class="risk-engine-label">
                       <span class="pulse-dot"></span>
-                      <span>Real-time Risk Engine Assessment</span>
+                      <span>Real-Time Risk Engine Assessment</span>
                     </div>
-                    <div class="risk-summary-text" id="risk-summary-text">
-                      Analyzing transfer parameters against deterministic rules...
+                    <div class="risk-summary-text" id="live-risk-summary">
+                      Evaluating deterministic rules before transfer...
                     </div>
                   </div>
                   <div class="risk-score-badge-wrap">
                     <div class="risk-score-display-group">
-                      <span class="risk-score-display" id="risk-score-value">0</span>
+                      <span class="risk-score-display" id="live-risk-score">0</span>
                       <span class="risk-score-max">/100</span>
                     </div>
                     <div>
-                      <span class="risk-level-badge low" id="risk-level-badge">LOW RISK</span>
+                      <span class="risk-level-badge low" id="live-risk-badge">LOW RISK</span>
                     </div>
                   </div>
                 </div>
 
-                <!-- Animated Progress Track -->
+                <!-- Animated Progress Bar -->
                 <div class="risk-progress-track">
-                  <div class="risk-progress-bar" id="risk-progress-bar" style="width: 0%; background-color: var(--risk-low);"></div>
+                  <div class="risk-progress-bar" id="live-risk-bar" style="width: 0%; background-color: var(--risk-low);"></div>
                 </div>
 
-                <!-- Three Threshold Markers -->
+                <!-- Threshold Markers -->
                 <div class="risk-threshold-markers">
                   <span class="marker low">0–30: LOW (Instant)</span>
                   <span class="marker med">31–80: MEDIUM (Confirm)</span>
-                  <span class="marker high">81–100: HIGH (Risk Pwd)</span>
+                  <span class="marker high">81–100: HIGH (Risk Password)</span>
                 </div>
 
-                <!-- Triggered Factors Pills -->
+                <!-- Triggered Risk Factors -->
                 <div class="factors-section mt-3">
                   <span class="factors-label">Triggered Risk Factors:</span>
-                  <div class="factors-pill-group" id="risk-factors-container">
-                    <span class="factor-none">No risk factors triggered</span>
+                  <div class="factors-pill-group" id="live-risk-factors">
+                    <span class="factor-none">No critical factors triggered</span>
                   </div>
                 </div>
               </div>
 
               <!-- Submit Transfer Button -->
-              <button type="submit" class="btn-primary btn-lg w-100" id="btn-submit-transfer">
-                🚀 Execute Secure Transfer
+              <button type="submit" class="btn-primary btn-lg w-100" id="btn-execute-transfer">
+                🚀 Initiate Secure Transfer (Calls TransactionService → AccountService)
               </button>
+
             </form>
           </div>
 
         </div>
 
-        <!-- Right Column: Live Risk Profile & Security Shield -->
+        <!-- ================= RIGHT COLUMN ================= -->
         <div class="dashboard-right">
 
-          <!-- User Risk Profile State Card -->
+          <!-- 1. USER RISK PROFILE & SECURITY SHIELD -->
           <div class="glass-card mb-4">
             <div class="card-header-flex">
               <div class="card-title-group">
-                <h3>🛡️ Security State & Risk Profile</h3>
-                <span class="badge-tag" style="background: rgba(99, 102, 241, 0.15); color: var(--primary-light);">UserRiskProfile</span>
+                <h3>🛡️ User Risk Profile</h3>
+                <span class="badge-tag">UserRiskProfile</span>
               </div>
-              <button class="btn-secondary btn-xs" id="btn-refresh-profile" title="Refresh Profile">
-                🔄 Refresh
+              <button class="btn-secondary btn-xs" id="btn-open-set-risk-pwd">
+                🔐 Set Risk Password
               </button>
             </div>
 
-            <!-- Security Alert Banner -->
+            <!-- Security Alert Box -->
             <div class="security-status-alert safe" id="security-alert-box">
               <span class="alert-icon">🛡️</span>
               <div class="alert-content">
@@ -273,641 +382,144 @@
               </div>
             </div>
 
-            <!-- Stats Metric Cards Grid -->
+            <!-- Metric Stats Grid -->
             <div class="profile-stats-grid">
               <div class="stat-metric-box">
-                <div class="metric-value" id="profile-risk-score">0</div>
+                <div class="metric-value" id="profile-base-score">0</div>
                 <div class="metric-label">Base Risk Score</div>
               </div>
               <div class="stat-metric-box">
-                <div class="metric-value text-success" id="profile-safe-count">0</div>
+                <div class="metric-value text-success" id="profile-safe-audits">0</div>
                 <div class="metric-label">Safe Audits (-5)</div>
               </div>
               <div class="stat-metric-box">
-                <div class="metric-value text-danger" id="profile-unsafe-count">0</div>
+                <div class="metric-value text-danger" id="profile-unsafe-audits">0</div>
                 <div class="metric-label">Unsafe Audits (+15)</div>
               </div>
               <div class="stat-metric-box">
-                <div class="metric-value text-warning" id="profile-failed-attempts">0 / 6</div>
-                <div class="metric-label">Failed Attempts</div>
+                <div class="metric-value text-warning" id="profile-failed-pwds">0 / 6</div>
+                <div class="metric-label">Failed Passwords</div>
               </div>
             </div>
 
-            <!-- Failed Attempts 6-Stage Progress Indicator -->
+            <!-- Penalty 6-Step Stepper -->
             <div class="failed-attempts-stepper mb-3">
               <div class="stepper-label">Risk Password Failure Penalty Stages:</div>
               <div class="stepper-track">
-                <div class="step-pill" id="step-1" title="Attempt 1: Retry permitted">1</div>
-                <div class="step-pill" id="step-2" title="Attempt 2: Retry permitted">2</div>
-                <div class="step-pill" id="step-3" title="Attempt 3: Retry permitted">3</div>
-                <div class="step-pill warn" id="step-4" title="Attempt 4: Security Warning">4 ⚠️</div>
-                <div class="step-pill danger" id="step-5" title="Attempt 5: 15-Minute Rate Limit">5 ⏳</div>
-                <div class="step-pill frozen" id="step-6" title="Attempt 6: Account Frozen 24 Hours">6 ❄️</div>
+                <div class="step-pill" id="step-1">1</div>
+                <div class="step-pill" id="step-2">2</div>
+                <div class="step-pill" id="step-3">3</div>
+                <div class="step-pill warn" id="step-4">4 ⚠️</div>
+                <div class="step-pill danger" id="step-5">5 ⏳</div>
+                <div class="step-pill frozen" id="step-6">6 ❄️</div>
               </div>
             </div>
 
-            <div class="card-btn-footer">
-              <button class="btn-secondary w-100" id="btn-open-risk-pwd">
-                🔐 Set / Update Risk Password
-              </button>
+            <!-- Compliance Simulator Buttons -->
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 14px; margin-top: 14px;">
+              <span class="text-xs text-subtle font-bold" style="display: block; margin-bottom: 8px;">ADMIN AUDIT REVIEW SIMULATOR:</span>
+              <div class="form-row-dual">
+                <button type="button" class="btn-success btn-xs" id="btn-audit-safe">
+                  ✅ Audit SAFE (-5)
+                </button>
+                <button type="button" class="btn-danger btn-xs" id="btn-audit-unsafe">
+                  ⚠️ Audit UNSAFE (+15)
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Deterministic Rule Engine Reference Guide -->
+          <!-- 2. ARCHITECTURE & MICROSERVICES CLUSTER EXPLORER -->
           <div class="glass-card">
             <div class="card-header-flex">
               <div class="card-title-group">
-                <h3>📐 Deterministic Risk Rules</h3>
-                <span class="badge-tag" style="background: rgba(16, 185, 129, 0.15); color: var(--risk-low);">Rule Spec</span>
+                <h3>🌐 Distributed Architecture</h3>
+                <span class="badge-tag">3 Microservices</span>
               </div>
-            </div>
-            <ul class="rules-spec-list">
-              <li>
-                <span class="rule-chip chip-amber">+25</span>
-                <div>
-                  <strong>Large Transaction:</strong> Amount &gt; 2x sender's average
-                </div>
-              </li>
-              <li>
-                <span class="rule-chip chip-rose">+50</span>
-                <div>
-                  <strong>Very Large Transaction:</strong> Amount &gt; 5x sender's average
-                </div>
-              </li>
-              <li>
-                <span class="rule-chip chip-cyan">+20</span>
-                <div>
-                  <strong>New Receiver:</strong> First time sending money to this account
-                </div>
-              </li>
-              <li>
-                <span class="rule-chip chip-indigo">+15</span>
-                <div>
-                  <strong>New Device:</strong> Device fingerprint not recognized
-                </div>
-              </li>
-              <li>
-                <span class="rule-chip chip-purple">+15</span>
-                <div>
-                  <strong>Unusual Time:</strong> Transaction between 11 PM and 5 AM
-                </div>
-              </li>
-              <li>
-                <span class="rule-chip chip-emerald">±Live</span>
-                <div>
-                  <strong>Historical Behavior:</strong> SAFE audits reduce risk (-5); UNSAFE increase (+15)
-                </div>
-              </li>
-            </ul>
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================= TAB 2: ACCOUNT SERVICE HUB ================= -->
-    <section class="tab-panel" id="tab-account">
-      <div class="dashboard-hero">
-        <div class="hero-text">
-          <h1>Account Service - Core Banking Hub</h1>
-          <p>Direct communication with Account Service at <code>https://accountservice-bank.onrender.com</code>.</p>
-        </div>
-      </div>
-
-      <div class="dashboard-grid">
-        <!-- Account Lookup & Details Card -->
-        <div class="dashboard-left">
-          <div class="glass-card mb-4">
-            <div class="card-header-flex">
-              <h3>🔍 Real-Time Account Inspector</h3>
-              <span class="badge-tag">GET /accounts/{accountNumber}</span>
-            </div>
-            <div class="form-row-dual">
-              <div class="form-group flex-1">
-                <label for="acc-search-input">Account Number</label>
-                <input type="text" id="acc-search-input" class="form-control" value="ACC-1001" placeholder="e.g. ACC-1001">
-              </div>
-              <div class="form-group" style="align-self: flex-end;">
-                <button class="btn-primary" id="btn-fetch-account-details">Query Account</button>
-              </div>
-            </div>
-
-            <!-- Result Display Card -->
-            <div class="account-details-card mt-3" id="account-details-view">
-              <div class="detail-row">
-                <span class="detail-key">Account Number</span>
-                <span class="detail-val font-mono" id="dtl-acc-num">ACC-1001</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-key">Account Holder</span>
-                <span class="detail-val" id="dtl-acc-name">Loading...</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-key">Balance</span>
-                <span class="detail-val text-success font-bold text-lg" id="dtl-acc-balance">₹0.00</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-key">Account Type</span>
-                <span class="detail-val" id="dtl-acc-type">SAVINGS</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-key">Status</span>
-                <span class="detail-val status-pill-active" id="dtl-acc-status">ACTIVE</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-key">Created At</span>
-                <span class="detail-val font-mono text-xs" id="dtl-acc-created">-</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Account Transfer Directly via Account Service -->
-          <div class="glass-card">
-            <div class="card-header-flex">
-              <h3>🔄 Direct Ledger Transfer (Account Service)</h3>
-              <span class="badge-tag">POST /accounts/transfer</span>
-            </div>
-            <p class="text-sm text-muted mb-3">Direct core balance transfer bypasses Transaction Service risk engine.</p>
-            <div class="form-row-dual">
-              <div class="form-group">
-                <label for="direct-from-acc">From Account</label>
-                <input type="text" id="direct-from-acc" class="form-control" value="ACC-1001">
-              </div>
-              <div class="form-group">
-                <label for="direct-to-acc">To Account</label>
-                <input type="text" id="direct-to-acc" class="form-control" value="ACC-2002">
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="direct-amount">Amount (₹)</label>
-              <input type="number" id="direct-amount" class="form-control" value="500" min="1">
-            </div>
-            <button class="btn-primary w-100" id="btn-submit-direct-transfer">Direct Core Transfer</button>
-          </div>
-        </div>
-
-        <!-- Account Operations (Deposit & Withdraw) -->
-        <div class="dashboard-right">
-          <!-- Direct Deposit Card -->
-          <div class="glass-card mb-4">
-            <div class="card-header-flex">
-              <h3>💵 Deposit Funds</h3>
-              <span class="badge-tag">POST /accounts/{acc}/deposit</span>
-            </div>
-            <div class="form-group">
-              <label for="deposit-acc-target">Target Account</label>
-              <input type="text" id="deposit-acc-target" class="form-control" value="ACC-1001">
-            </div>
-            <div class="form-group">
-              <label for="deposit-amount-input">Deposit Amount (₹)</label>
-              <input type="number" id="deposit-amount-input" class="form-control" value="10000" min="10">
-            </div>
-            <!-- Quick Chips -->
-            <div class="quick-chips-row mb-3">
-              <button type="button" class="chip-btn" data-dep-amount="1000">+ ₹1,000</button>
-              <button type="button" class="chip-btn" data-dep-amount="5000">+ ₹5,000</button>
-              <button type="button" class="chip-btn" data-dep-amount="10000">+ ₹10,000</button>
-              <button type="button" class="chip-btn" data-dep-amount="50000">+ ₹50,000</button>
-            </div>
-            <button class="btn-success w-100" id="btn-execute-deposit">Execute Deposit</button>
-          </div>
-
-          <!-- Direct Withdraw Card -->
-          <div class="glass-card">
-            <div class="card-header-flex">
-              <h3>🏧 Withdraw Funds</h3>
-              <span class="badge-tag">POST /accounts/{acc}/withdraw</span>
-            </div>
-            <div class="form-group">
-              <label for="withdraw-acc-target">Source Account</label>
-              <input type="text" id="withdraw-acc-target" class="form-control" value="ACC-1001">
-            </div>
-            <div class="form-group">
-              <label for="withdraw-amount-input">Withdraw Amount (₹)</label>
-              <input type="number" id="withdraw-amount-input" class="form-control" value="1000" min="10">
-            </div>
-            <button class="btn-danger w-100" id="btn-execute-withdraw">Execute Withdrawal</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= TAB 3: USER & AUTH PORTAL ================= -->
-    <section class="tab-panel" id="tab-user">
-      <div class="dashboard-hero">
-        <div class="hero-text">
-          <h1>User Service & Identity Portal</h1>
-          <p>Authentication, OTP Verification, and JWT Security via <code>https://userservice-bank.onrender.com</code>.</p>
-        </div>
-      </div>
-
-      <div class="dashboard-grid">
-        <!-- Auth Actions Forms -->
-        <div class="dashboard-left">
-          <!-- Sub Navigation for Auth Tabs -->
-          <div class="subtabs-bar mb-3">
-            <button class="subtab-btn active" data-subtab="subtab-login">Sign In</button>
-            <button class="subtab-btn" data-subtab="subtab-signup">Register / Sign Up</button>
-            <button class="subtab-btn" data-subtab="subtab-otp">Verify OTP</button>
-            <button class="subtab-btn" data-subtab="subtab-forgot">Forgot Password</button>
-          </div>
-
-          <!-- Form 1: Sign In -->
-          <div class="glass-card subtab-content active" id="subtab-login">
-            <div class="card-header-flex">
-              <h3>🔐 Sign In (User Service)</h3>
-              <span class="badge-tag">POST /auth/login</span>
-            </div>
-            <form id="portal-login-form">
-              <div class="form-group">
-                <label for="portal-login-email">Email Address</label>
-                <input type="email" id="portal-login-email" class="form-control" value="arnavtyagi96@gmail.com" required>
-              </div>
-              <div class="form-group">
-                <label for="portal-login-password">Password</label>
-                <input type="password" id="portal-login-password" class="form-control" value="Banking@1234" required>
-              </div>
-              <button type="submit" class="btn-primary w-100" id="btn-portal-login">Authenticate & Fetch JWT</button>
-            </form>
-          </div>
-
-          <!-- Form 2: Sign Up -->
-          <div class="glass-card subtab-content" id="subtab-signup">
-            <div class="card-header-flex">
-              <h3>📝 Create New User Account</h3>
-              <span class="badge-tag">POST /auth/signup</span>
-            </div>
-            <form id="portal-signup-form">
-              <div class="form-row-dual">
-                <div class="form-group">
-                  <label for="signup-first-name">First Name</label>
-                  <input type="text" id="signup-first-name" class="form-control" placeholder="Arnav" required>
-                </div>
-                <div class="form-group">
-                  <label for="signup-last-name">Last Name</label>
-                  <input type="text" id="signup-last-name" class="form-control" placeholder="Tyagi" required>
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="signup-email">Email Address</label>
-                <input type="email" id="signup-email" class="form-control" placeholder="user@example.com" required>
-              </div>
-              <div class="form-group">
-                <label for="signup-password">Password</label>
-                <input type="password" id="signup-password" class="form-control" placeholder="Strong password (min 6 chars)" required>
-              </div>
-              <div class="form-row-dual">
-                <div class="form-group">
-                  <label for="signup-phone">Phone Number</label>
-                  <input type="tel" id="signup-phone" class="form-control" placeholder="9876543210" required>
-                </div>
-                <div class="form-group">
-                  <label for="signup-dob">Date of Birth</label>
-                  <input type="date" id="signup-dob" class="form-control" value="2000-01-15" required>
-                </div>
-              </div>
-              <button type="submit" class="btn-primary w-100" id="btn-portal-signup">Register User</button>
-            </form>
-          </div>
-
-          <!-- Form 3: Verify OTP -->
-          <div class="glass-card subtab-content" id="subtab-otp">
-            <div class="card-header-flex">
-              <h3>📬 Verify Email OTP</h3>
-              <span class="badge-tag">POST /auth/verify-otp</span>
-            </div>
-            <form id="portal-otp-form">
-              <div class="form-group">
-                <label for="otp-email">Email Address</label>
-                <input type="email" id="otp-email" class="form-control" value="arnavtyagi96@gmail.com" required>
-              </div>
-              <div class="form-group">
-                <label for="otp-code">6-Digit OTP Code</label>
-                <input type="text" id="otp-code" class="form-control" placeholder="123456" maxlength="6" required>
-              </div>
-              <button type="submit" class="btn-primary w-100" id="btn-portal-otp">Verify Account</button>
-            </form>
-          </div>
-
-          <!-- Form 4: Forgot Password -->
-          <div class="glass-card subtab-content" id="subtab-forgot">
-            <div class="card-header-flex">
-              <h3>🔑 Reset User Password</h3>
-              <span class="badge-tag">POST /auth/forgot-password</span>
-            </div>
-            <form id="portal-forgot-form">
-              <div class="form-group">
-                <label for="forgot-email">Account Email</label>
-                <input type="email" id="forgot-email" class="form-control" placeholder="user@example.com" required>
-              </div>
-              <button type="submit" class="btn-secondary w-100 mb-3" id="btn-request-reset-otp">Request Reset OTP</button>
-            </form>
-
-            <form id="portal-reset-form" class="mt-3">
-              <div class="form-group">
-                <label for="reset-new-password">New Password</label>
-                <input type="password" id="reset-new-password" class="form-control" placeholder="New strong password" required>
-              </div>
-              <button type="submit" class="btn-primary w-100" id="btn-execute-reset-pwd">Update Password</button>
-            </form>
-          </div>
-
-        </div>
-
-        <!-- Right Column: JWT Token Inspector & Live Claims -->
-        <div class="dashboard-right">
-          <div class="glass-card mb-4">
-            <div class="card-header-flex">
-              <h3>🔍 Active JWT Bearer Inspector</h3>
-              <span class="badge-tag" id="token-status-badge">ACTIVE</span>
-            </div>
-
-            <div class="token-claims-table mb-3" id="token-claims-view">
-              <div class="detail-row">
-                <span class="detail-key">Subject (Email)</span>
-                <span class="detail-val font-mono" id="claim-sub">arnavtyagi96@gmail.com</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-key">Assigned Role</span>
-                <span class="detail-val" id="claim-role">ROLE_USER</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-key">Issued At</span>
-                <span class="detail-val font-mono text-xs" id="claim-iat">-</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-key">Expires At</span>
-                <span class="detail-val font-mono text-xs" id="claim-exp">-</span>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="token-raw-display">Raw Bearer Token</label>
-              <textarea id="token-raw-display" class="form-control font-mono text-xs" rows="3" readonly></textarea>
-            </div>
-
-            <div class="flex-gap-2">
-              <button class="btn-secondary btn-sm flex-1" id="btn-copy-token">📋 Copy Token</button>
-              <button class="btn-secondary btn-sm flex-1" id="btn-clear-session">🚪 Clear Session</button>
-            </div>
-          </div>
-
-          <!-- Quick Test Token Card -->
-          <div class="glass-card">
-            <h4>⚡ Pre-Signed Test Token Generator</h4>
-            <p class="text-sm text-muted mb-3">If the User Service on Render is asleep or cold-starting, use a pre-signed test token to test the Risk Engine immediately:</p>
-            <button class="btn-primary w-100" id="btn-apply-test-token-direct">Use Instant Pre-Signed JWT</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= TAB 4: COMPLIANCE & RISK AUDIT STUDIO ================= -->
-    <section class="tab-panel" id="tab-compliance">
-      <div class="dashboard-hero">
-        <div class="hero-text">
-          <h1>Compliance & Risk Audit Studio</h1>
-          <p>Observe how post-transaction administrative audits dynamically increase or decrease a user's base risk score.</p>
-        </div>
-      </div>
-
-      <div class="dashboard-grid">
-        <div class="dashboard-left">
-          <div class="glass-card mb-4">
-            <div class="card-header-flex">
-              <h3>⚖️ Transaction Audit Review Simulator</h3>
-              <span class="badge-tag">TransactionReviewService</span>
-            </div>
-            <p class="text-sm text-muted mb-3">
-              According to the deterministic specification:
-              <br>• Marking a transaction <strong>SAFE</strong> decreases the user's base risk score by <strong>5 points</strong>.
-              <br>• Marking a transaction <strong>UNSAFE</strong> increases the user's base risk score by <strong>15 points</strong>.
-            </p>
-
-            <div class="form-group">
-              <label for="review-target-txn-id">Transaction Reference ID</label>
-              <input type="text" id="review-target-txn-id" class="form-control" value="TXN-DEMO-9001">
-            </div>
-
-            <div class="form-row-dual mt-3">
-              <button class="btn-success" id="btn-studio-mark-safe" style="padding: 14px;">
-                ✅ Mark Audit SAFE (-5 Risk)
-              </button>
-              <button class="btn-danger" id="btn-studio-mark-unsafe" style="padding: 14px;">
-                ⚠️ Mark Audit UNSAFE (+15 Risk)
+              <button class="btn-secondary btn-xs" id="btn-ping-cluster">
+                ⚡ Ping All
               </button>
             </div>
-          </div>
 
-          <!-- Risk Password Security Configuration -->
-          <div class="glass-card">
-            <div class="card-header-flex">
-              <h3>🔐 Set / Reset Risk Password</h3>
-              <span class="badge-tag">POST /transactions/risk-password</span>
-            </div>
-            <p class="text-sm text-muted mb-3">
-              Set a dedicated BCrypt-hashed password required whenever a transfer scores &gt; 80 (HIGH Risk).
-            </p>
-            <div class="form-group">
-              <label for="risk-pwd-setup-input">New Risk Password</label>
-              <input type="password" id="risk-pwd-setup-input" class="form-control" placeholder="Enter new secret password (e.g. Risk@1234)">
-            </div>
-            <button class="btn-primary w-100" id="btn-save-risk-pwd-direct">Update Risk Password</button>
-          </div>
-        </div>
+            <div class="cluster-summary-list">
+              <div class="cluster-item">
+                <div class="cluster-item-title">
+                  <span class="dot-status" id="dot-cluster-user"></span>
+                  <strong>1. UserService</strong>
+                </div>
+                <div class="cluster-item-desc">Handles user registration, BCrypt password hashing, JWT tokens & devices.</div>
+                <code class="cluster-item-url">https://userservice-bank.onrender.com</code>
+              </div>
 
-        <div class="dashboard-right">
-          <div class="glass-card">
-            <div class="card-header-flex">
-              <h3>🚨 Penalty Escalation Matrix</h3>
-              <span class="badge-tag">Security Policy</span>
-            </div>
-            <div class="penalty-matrix">
-              <div class="matrix-card">
-                <span class="matrix-badge normal">Attempts 1 – 3</span>
-                <p>Standard password retry permitted. Remaining attempts counter updated.</p>
+              <div class="cluster-item">
+                <div class="cluster-item-title">
+                  <span class="dot-status" id="dot-cluster-txn"></span>
+                  <strong>2. TransactionService (Risk Engine)</strong>
+                </div>
+                <div class="cluster-item-desc">Scores transactions 0–100, enforces Medium confirmation & High Risk Password gates, then calls AccountService.</div>
+                <code class="cluster-item-url">https://transactionservice-bank.onrender.com</code>
               </div>
-              <div class="matrix-card">
-                <span class="matrix-badge warn">Attempt 4</span>
-                <p>Security Warning triggered. User alerted about impending account lock.</p>
-              </div>
-              <div class="matrix-card">
-                <span class="matrix-badge danger">Attempt 5</span>
-                <p>Rate Limit enforced. Transactions temporarily locked for 15 minutes.</p>
-              </div>
-              <div class="matrix-card">
-                <span class="matrix-badge freeze">Attempt 6</span>
-                <p>Account Frozen. All transaction operations blocked for 24 hours.</p>
+
+              <div class="cluster-item">
+                <div class="cluster-item-title">
+                  <span class="dot-status" id="dot-cluster-acc"></span>
+                  <strong>3. AccountService</strong>
+                </div>
+                <div class="cluster-item-desc">Maintains master bank balances, debit/credit ledger, and deposit/withdraw endpoints.</div>
+                <code class="cluster-item-url">https://accountservice-bank.onrender.com</code>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- ================= TAB 5: AUDIT LEDGER ================= -->
-    <section class="tab-panel" id="tab-ledger">
-      <div class="dashboard-hero">
-        <div class="hero-text">
-          <h1>Live Transaction & Risk Audit Ledger</h1>
-          <p>Real-time record of all transfers executed with risk score, decision level, and factor breakdown.</p>
         </div>
+
       </div>
 
-      <div class="glass-card">
+      <!-- ================= RECENT PASSBOOK / AUDIT LEDGER ================= -->
+      <div class="glass-card mt-4">
         <div class="card-header-flex">
-          <div class="table-filters-group">
-            <button class="filter-btn active" data-filter="ALL">All (<span id="count-all">0</span>)</button>
-            <button class="filter-btn" data-filter="LOW">Low Risk (<span id="count-low">0</span>)</button>
-            <button class="filter-btn" data-filter="MEDIUM">Medium Risk (<span id="count-med">0</span>)</button>
-            <button class="filter-btn" data-filter="HIGH">High Risk (<span id="count-high">0</span>)</button>
+          <div class="card-title-group">
+            <h3>📜 Transaction Passbook & Risk Audit Trail</h3>
+            <span class="badge-tag" id="passbook-counter">0 Transactions</span>
           </div>
-          <div class="flex-gap-2">
-            <button class="btn-secondary btn-xs" id="btn-clear-ledger">Clear Local Logs</button>
-          </div>
+          <button class="btn-secondary btn-xs" id="btn-clear-history">
+            Clear Local Logs
+          </button>
         </div>
 
         <div class="table-responsive mt-3">
           <table class="transaction-table">
             <thead>
               <tr>
-                <th>Reference ID</th>
+                <th>Transaction ID</th>
                 <th>Route (From → To)</th>
                 <th>Amount</th>
                 <th>Risk Score</th>
                 <th>Gate Level</th>
                 <th>Triggered Factors</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th>Timestamp</th>
               </tr>
             </thead>
-            <tbody id="transaction-log-body">
-              <tr id="empty-ledger-row">
+            <tbody id="passbook-table-body">
+              <tr>
                 <td colspan="8" class="text-center text-muted p-4">
-                  No transactions recorded yet. Execute a transfer in the Risk Gateway!
+                  No transactions executed yet. Initiate a transfer above!
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-    </section>
 
-    <!-- ================= TAB 6: CLUSTER DIAGNOSTICS ================= -->
-    <section class="tab-panel" id="tab-cluster">
-      <div class="dashboard-hero">
-        <div class="hero-text">
-          <h1>Microservice Cluster Diagnostics</h1>
-          <p>Inspect status, test latency, and configure URLs for each microservice running on Render.</p>
-        </div>
-      </div>
+    </main>
 
-      <div class="dashboard-grid">
-        <div class="dashboard-left">
-          <div class="glass-card mb-4">
-            <div class="card-header-flex">
-              <h3>📡 Microservices Health Matrix</h3>
-              <button class="btn-primary btn-sm" id="btn-cluster-ping-all">Ping All Now</button>
-            </div>
+  </div>
 
-            <!-- Service Card 1: Transaction Service -->
-            <div class="service-diagnostic-card mt-3">
-              <div class="diag-header">
-                <div class="diag-title">
-                  <span class="dot-status warning" id="diag-dot-txn"></span>
-                  <strong>Transaction Service & Risk Engine</strong>
-                </div>
-                <span class="diag-latency" id="diag-latency-txn">Pending</span>
-              </div>
-              <div class="diag-url" id="diag-url-txn">https://transactionservice-bank.onrender.com</div>
-              <div class="diag-endpoints">
-                <span>POST /transactions/assess-risk</span>
-                <span>POST /transactions/transfer</span>
-                <span>POST /transactions/risk-password</span>
-                <span>GET /health</span>
-              </div>
-            </div>
 
-            <!-- Service Card 2: Account Service -->
-            <div class="service-diagnostic-card mt-3">
-              <div class="diag-header">
-                <div class="diag-title">
-                  <span class="dot-status warning" id="diag-dot-account"></span>
-                  <strong>Account Service (Core Banking)</strong>
-                </div>
-                <span class="diag-latency" id="diag-latency-account">Pending</span>
-              </div>
-              <div class="diag-url" id="diag-url-account">https://accountservice-bank.onrender.com</div>
-              <div class="diag-endpoints">
-                <span>GET /accounts/{acc}</span>
-                <span>POST /accounts/{acc}/deposit</span>
-                <span>POST /accounts/{acc}/withdraw</span>
-                <span>POST /accounts/transfer</span>
-              </div>
-            </div>
-
-            <!-- Service Card 3: User Service -->
-            <div class="service-diagnostic-card mt-3">
-              <div class="diag-header">
-                <div class="diag-title">
-                  <span class="dot-status warning" id="diag-dot-user"></span>
-                  <strong>User Service (Auth & Security)</strong>
-                </div>
-                <span class="diag-latency" id="diag-latency-user">Pending</span>
-              </div>
-              <div class="diag-url" id="diag-url-user">https://userservice-bank.onrender.com</div>
-              <div class="diag-endpoints">
-                <span>POST /auth/login</span>
-                <span>POST /auth/signup</span>
-                <span>POST /auth/verify-otp</span>
-                <span>GET /auth/health</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="dashboard-right">
-          <!-- Configuration Form -->
-          <div class="glass-card mb-4">
-            <div class="card-header-flex">
-              <h3>⚙️ Cluster Configuration</h3>
-            </div>
-            <div class="form-group">
-              <label for="cfg-diag-txn-url">Transaction Service URL</label>
-              <input type="text" id="cfg-diag-txn-url" class="form-control" value="https://transactionservice-bank.onrender.com">
-            </div>
-            <div class="form-group">
-              <label for="cfg-diag-account-url">Account Service URL</label>
-              <input type="text" id="cfg-diag-account-url" class="form-control" value="https://accountservice-bank.onrender.com">
-            </div>
-            <div class="form-group">
-              <label for="cfg-diag-user-url">User Service URL</label>
-              <input type="text" id="cfg-diag-user-url" class="form-control" value="https://userservice-bank.onrender.com">
-            </div>
-
-            <div class="form-row-dual mt-3">
-              <button class="btn-secondary" id="btn-cfg-reset-render">Reset to Render Live</button>
-              <button class="btn-secondary" id="btn-cfg-switch-local">Switch to Localhost</button>
-            </div>
-            <button class="btn-primary w-100 mt-2" id="btn-cfg-save-all">Save & Apply Endpoints</button>
-          </div>
-
-          <!-- Cold Start Notice -->
-          <div class="glass-card" style="background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.25);">
-            <h4>💡 Render Free-Tier Notice</h4>
-            <p class="text-sm text-muted">
-              Services hosted on Render free tier go to sleep after 15 minutes of inactivity. The first request may take <strong>30–50 seconds</strong> to spin up the container. Once awake, response times are &lt; 200ms.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ================= MODALS ================= -->
+  <!-- ========================================================================= -->
+  <!-- MODALS                                                                    -->
+  <!-- ========================================================================= -->
 
   <!-- Modal 1: MEDIUM Risk Confirmation Modal -->
   <div class="modal-backdrop" id="modal-medium-confirm">
@@ -915,14 +527,14 @@
       <div class="modal-icon-badge warning">⚠️</div>
       <h3 class="modal-title">Medium Risk Detected</h3>
       <p class="modal-desc">
-        This transaction has elevated risk characteristics. Explicit user confirmation is required before proceeding.
+        Transaction score is in the elevated range (31–80). Explicit confirmation is required before Transaction Service calls Account Service.
       </p>
-      <div class="alert-box-warn mb-3" id="medium-factors-breakdown">
-        Factors: LARGE_TRANSACTION, NEW_RECEIVER
+      <div class="alert-box-warn mb-3" id="modal-medium-factors">
+        Triggered Factors: LARGE_TRANSACTION
       </div>
       <div class="modal-actions">
-        <button class="btn-secondary" id="btn-cancel-medium">Cancel Transfer</button>
-        <button class="btn-primary" id="btn-confirm-medium">Confirm & Authorize</button>
+        <button class="btn-secondary" id="btn-medium-cancel">Cancel Transfer</button>
+        <button class="btn-primary" id="btn-medium-confirm">Confirm & Authorize</button>
       </div>
     </div>
   </div>
@@ -933,11 +545,11 @@
       <div class="modal-icon-badge danger">🚨</div>
       <h3 class="modal-title">High Risk Verification</h3>
       <p class="modal-desc">
-        Risk score &gt; 80 detected. Immediate transfer is paused. Enter your dedicated BCrypt Risk Password to authorize:
+        Risk score &gt; 80 detected. To protect your funds, enter your dedicated BCrypt Risk Password to proceed:
       </p>
       <div class="form-group">
-        <label for="input-risk-pwd-prompt">Dedicated Risk Password</label>
-        <input type="password" id="input-risk-pwd-prompt" class="form-control" placeholder="Enter Risk Password" autocomplete="off">
+        <label for="input-modal-risk-pwd">Risk Password</label>
+        <input type="password" id="input-modal-risk-pwd" class="form-control" placeholder="Enter Risk Password" autocomplete="off">
       </div>
       <div class="security-rules-box mb-3">
         <strong>⚠️ Security Penalty Policy:</strong>
@@ -947,8 +559,8 @@
         <div>• 6th failed: Account Frozen for 24 Hours</div>
       </div>
       <div class="modal-actions">
-        <button class="btn-secondary" id="btn-cancel-high">Abort Transfer</button>
-        <button class="btn-danger" id="btn-submit-risk-pwd">Verify & Authorize</button>
+        <button class="btn-secondary" id="btn-high-cancel">Abort Transfer</button>
+        <button class="btn-danger" id="btn-high-submit">Verify & Authorize</button>
       </div>
     </div>
   </div>
@@ -956,10 +568,10 @@
   <!-- Modal 3: Set/Update Risk Password Modal -->
   <div class="modal-backdrop" id="modal-set-password">
     <div class="modal-window">
-      <div class="modal-icon-badge primary">🔐</div>
-      <h3 class="modal-title">Set Risk Password</h3>
+      <div class="modal-icon-badge primary" style="background: rgba(99, 102, 241, 0.2); color: var(--primary-light);">🔐</div>
+      <h3 class="modal-title">Configure Risk Password</h3>
       <p class="modal-desc">
-        Configure a separate Risk Password for authorizing HIGH-risk transactions (&gt; 80 score). Stored securely as a BCrypt hash.
+        Set a separate, dedicated password required whenever a high-risk transfer (&gt; 80 score) is attempted.
       </p>
       <div class="form-group">
         <label for="input-new-risk-pwd">New Risk Password</label>
@@ -972,80 +584,27 @@
     </div>
   </div>
 
-  <!-- Modal 4: Quick Deposit Modal -->
+  <!-- Modal 4: Quick Deposit Modal (Calls AccountService) -->
   <div class="modal-backdrop" id="modal-deposit">
     <div class="modal-window">
       <div class="modal-icon-badge success">💵</div>
-      <h3 class="modal-title">Deposit Money</h3>
-      <p class="modal-desc">Deposit funds directly into account via Account Service.</p>
+      <h3 class="modal-title">Deposit Money (Account Service)</h3>
+      <p class="modal-desc">
+        Deposit funds directly into <code>ACC-1001</code> via <strong>AccountService</strong> (<code>POST /accounts/{acc}/deposit</code>).
+      </p>
       <div class="form-group">
-        <label for="deposit-amount-modal">Amount (₹)</label>
-        <input type="number" id="deposit-amount-modal" class="form-control" value="10000" min="100">
+        <label for="deposit-amount-input">Deposit Amount (₹)</label>
+        <input type="number" id="deposit-amount-input" class="form-control" value="10000" min="100">
+      </div>
+      <div class="quick-chips-row mb-3">
+        <button type="button" class="chip-btn" data-dep-preset="1000">+ ₹1,000</button>
+        <button type="button" class="chip-btn" data-dep-preset="5000">+ ₹5,000</button>
+        <button type="button" class="chip-btn" data-dep-preset="10000">+ ₹10,000</button>
+        <button type="button" class="chip-btn" data-dep-preset="50000">+ ₹50,000</button>
       </div>
       <div class="modal-actions">
         <button class="btn-secondary" id="btn-close-deposit">Cancel</button>
-        <button class="btn-success" id="btn-submit-deposit">Confirm Deposit</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 5: Quick Withdraw Modal -->
-  <div class="modal-backdrop" id="modal-withdraw">
-    <div class="modal-window">
-      <div class="modal-icon-badge danger">🏧</div>
-      <h3 class="modal-title">Withdraw Money</h3>
-      <p class="modal-desc">Withdraw funds from account via Account Service.</p>
-      <div class="form-group">
-        <label for="withdraw-amount-modal">Amount (₹)</label>
-        <input type="number" id="withdraw-amount-modal" class="form-control" value="1000" min="100">
-      </div>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="btn-close-withdraw">Cancel</button>
-        <button class="btn-danger" id="btn-submit-withdraw">Confirm Withdrawal</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 6: Transaction JSON Inspector Modal -->
-  <div class="modal-backdrop" id="modal-json-view">
-    <div class="modal-window" style="max-width: 640px;">
-      <div class="modal-icon-badge secondary">📜</div>
-      <h3 class="modal-title">Transaction Audit Record</h3>
-      <pre class="json-code-box" id="json-code-display"></pre>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="btn-copy-json-record">📋 Copy JSON</button>
-        <button class="btn-primary" id="btn-close-json-view">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= Modal: Mandatory Authentication Gate ================= -->
-  <div class="modal-backdrop" id="modal-auth-gate">
-    <div class="modal-window" style="max-width: 440px;">
-      <div class="modal-icon-badge primary" style="background: rgba(99, 102, 241, 0.2); color: var(--primary-light);">🔐</div>
-      <h3 class="modal-title">Sign In to NinjaBank</h3>
-      <p class="modal-desc">
-        Authentication via <strong>UserService</strong> (<code>/auth/login</code>) is required to access your accounts, view live balances, and execute risk-gated transfers.
-      </p>
-
-      <form id="gate-login-form">
-        <div class="form-group">
-          <label for="gate-login-email">Email Address</label>
-          <input type="email" id="gate-login-email" class="form-control" value="arnavtyagi96@gmail.com" placeholder="name@domain.com" required>
-        </div>
-        <div class="form-group">
-          <label for="gate-login-password">Password</label>
-          <input type="password" id="gate-login-password" class="form-control" value="Banking@1234" placeholder="Enter password" required>
-        </div>
-
-        <button type="submit" class="btn-primary w-100" id="btn-gate-submit-login" style="padding: 13px; font-size: 15px;">
-          🚀 Sign In (User Service)
-        </button>
-      </form>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 12px; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
-        <a href="javascript:void(0)" id="gate-link-signup" style="color: var(--primary-light); text-decoration: none; font-weight: 600;">Create Account</a>
-        <a href="javascript:void(0)" id="gate-link-guest" style="color: var(--text-subtle); text-decoration: none;">Demo Guest Pass ⚡</a>
+        <button class="btn-success" id="btn-confirm-deposit">Confirm Deposit</button>
       </div>
     </div>
   </div>
