@@ -144,8 +144,9 @@ window.addEventListener('DOMContentLoaded', () => {
   renderPassbook();
   updateProfileUI();
 
-  // If user already has a valid token saved in this session, show dashboard directly
-  if (state.jwtToken) {
+  // Ensure user always starts on Screen 1 (Sign Up / Sign In) unless explicitly logged in
+  const hasExplicitLogin = sessionStorage.getItem('ninja_logged_in') === 'true';
+  if (hasExplicitLogin && state.jwtToken) {
     showDashboardScreen();
   } else {
     showAuthScreen();
@@ -251,6 +252,7 @@ function bindAuthScreenEvents() {
         state.jwtToken = token;
         state.userEmail = email;
         sessionStorage.setItem('ninja_jwt', token);
+        sessionStorage.setItem('ninja_logged_in', 'true');
         localStorage.setItem('ninja_email', email);
         showToast(`🎉 Authentication Successful! Logged in as ${email}`, 'success');
         showDashboardScreen();
@@ -364,6 +366,7 @@ function bindAuthScreenEvents() {
     state.jwtToken = `${header}.${payload}.${signature}`;
     state.userEmail = 'arnavtyagi96@gmail.com';
     sessionStorage.setItem('ninja_jwt', state.jwtToken);
+    sessionStorage.setItem('ninja_logged_in', 'true');
     localStorage.setItem('ninja_email', state.userEmail);
     showToast('⚡ Instant Demo Login Activated', 'info');
     showDashboardScreen();
@@ -379,6 +382,7 @@ function bindDashboardEvents() {
   DOM.btnLogout.addEventListener('click', () => {
     state.jwtToken = '';
     sessionStorage.removeItem('ninja_jwt');
+    sessionStorage.removeItem('ninja_logged_in');
     showToast('Logged out. Please sign in to continue.', 'info');
     showAuthScreen();
   });
