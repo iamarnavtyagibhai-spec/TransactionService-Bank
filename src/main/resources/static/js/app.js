@@ -279,7 +279,7 @@ function bindAuthScreenEvents() {
         showToast(`❌ Login Failed: ${errText || 'Invalid credentials'}`, 'error');
       }
     } catch (err) {
-      showToast(`UserService Connection Error: ${err.message}`, 'error');
+      showToast(`UserService CORS/Network block: ${err.message}. Render is redeploying CORS fix! Click '⚡ Instant Demo Login' below to enter immediately.`, 'warning');
     } finally {
       DOM.btnSubmitSignin.disabled = false;
       DOM.btnSubmitSignin.textContent = '🚀 Sign In (User Service)';
@@ -326,7 +326,7 @@ function bindAuthScreenEvents() {
         showToast(`Signup Failed: ${err}`, 'error');
       }
     } catch (err) {
-      showToast(`UserService Error: ${err.message}`, 'error');
+      showToast(`UserService CORS/Network block: ${err.message}. Render is redeploying CORS fix! Click '⚡ Instant Demo Login' below to test the dashboard immediately.`, 'warning');
     } finally {
       DOM.btnSubmitSignup.disabled = false;
       DOM.btnSubmitSignup.textContent = '📝 Create Account in UserService';
