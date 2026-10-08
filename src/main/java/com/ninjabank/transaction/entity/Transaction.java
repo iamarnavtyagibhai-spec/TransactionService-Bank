@@ -2,6 +2,7 @@ package com.ninjabank.transaction.entity;
 
 import com.ninjabank.transaction.enums.TransactionStatus;
 import com.ninjabank.transaction.enums.TransactionType;
+import com.ninjabank.transaction.risk.RiskLevel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -43,6 +44,16 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionStatus status;
+
+    @Column
+    private Integer riskScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private RiskLevel riskLevel;
+
+    @Column
+    private String riskFactors;
 
     @Column(nullable = false)
     private Instant createdAt;
