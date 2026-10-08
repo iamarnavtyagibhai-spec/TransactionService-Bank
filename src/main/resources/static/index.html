@@ -49,6 +49,9 @@
       <button class="btn-primary btn-sm" id="btn-open-auth">
         <span id="auth-btn-label">👤 Sign In</span>
       </button>
+      <button class="btn-secondary btn-sm" id="btn-logout-header" style="display: none;" title="Logout from session">
+        <span>🚪 Logout</span>
+      </button>
     </div>
   </header>
 
@@ -1012,6 +1015,37 @@
       <div class="modal-actions">
         <button class="btn-secondary" id="btn-copy-json-record">📋 Copy JSON</button>
         <button class="btn-primary" id="btn-close-json-view">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Modal: Mandatory Authentication Gate ================= -->
+  <div class="modal-backdrop" id="modal-auth-gate">
+    <div class="modal-window" style="max-width: 440px;">
+      <div class="modal-icon-badge primary" style="background: rgba(99, 102, 241, 0.2); color: var(--primary-light);">🔐</div>
+      <h3 class="modal-title">Sign In to NinjaBank</h3>
+      <p class="modal-desc">
+        Authentication via <strong>UserService</strong> (<code>/auth/login</code>) is required to access your accounts, view live balances, and execute risk-gated transfers.
+      </p>
+
+      <form id="gate-login-form">
+        <div class="form-group">
+          <label for="gate-login-email">Email Address</label>
+          <input type="email" id="gate-login-email" class="form-control" value="arnavtyagi96@gmail.com" placeholder="name@domain.com" required>
+        </div>
+        <div class="form-group">
+          <label for="gate-login-password">Password</label>
+          <input type="password" id="gate-login-password" class="form-control" value="Banking@1234" placeholder="Enter password" required>
+        </div>
+
+        <button type="submit" class="btn-primary w-100" id="btn-gate-submit-login" style="padding: 13px; font-size: 15px;">
+          🚀 Sign In (User Service)
+        </button>
+      </form>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 12px; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+        <a href="javascript:void(0)" id="gate-link-signup" style="color: var(--primary-light); text-decoration: none; font-weight: 600;">Create Account</a>
+        <a href="javascript:void(0)" id="gate-link-guest" style="color: var(--text-subtle); text-decoration: none;">Demo Guest Pass ⚡</a>
       </div>
     </div>
   </div>

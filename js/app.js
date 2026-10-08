@@ -186,6 +186,16 @@ const DOM = {
   btnCopyJsonRecord: document.getElementById('btn-copy-json-record'),
   btnCloseJsonView: document.getElementById('btn-close-json-view'),
 
+  // Mandatory Auth Gate Modal
+  modalAuthGate: document.getElementById('modal-auth-gate'),
+  gateLoginForm: document.getElementById('gate-login-form'),
+  gateLoginEmail: document.getElementById('gate-login-email'),
+  gateLoginPassword: document.getElementById('gate-login-password'),
+  btnGateSubmitLogin: document.getElementById('btn-gate-submit-login'),
+  gateLinkSignup: document.getElementById('gate-link-signup'),
+  gateLinkGuest: document.getElementById('gate-link-guest'),
+  btnLogoutHeader: document.getElementById('btn-logout-header'),
+
   toastContainer: document.getElementById('toast-container')
 };
 
@@ -199,6 +209,7 @@ window.addEventListener('DOMContentLoaded', () => {
   bindTabNavigation();
   bindSubtabs();
   bindEventListeners();
+  bindGateAuthListeners();
   renderLedgerTable();
   updateProfileUI();
 
@@ -214,10 +225,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function initAuthSession() {
   if (!state.jwtToken) {
-    // Generate default test token for immediate seamless experience
-    generateDefaultTestToken();
+    updateAuthUI();
+    // Prompt login immediately so the user logs in
+    setTimeout(() => {
+      if (DOM.modalAuthGate) DOM.modalAuthGate.classList.add('active');
+    }, 350);
+  } else {
+    updateAuthUI();
   }
-  updateAuthUI();
 }
 
 function generateDefaultTestToken() {
@@ -258,20 +273,98 @@ function updateAuthUI() {
     localStorage.setItem('ninja_email', parsedEmail);
     DOM.activeSessionEmail.textContent = parsedEmail;
     DOM.authBtnLabel.textContent = `👤 ${parsedEmail.split('@')[0]}`;
+    if (DOM.btnLogoutHeader) DOM.btnLogoutHeader.style.display = 'inline-flex';
     DOM.authTabStatus.textContent = 'Active';
     DOM.authTabStatus.style.background = 'rgba(16, 185, 129, 0.2)';
     DOM.authTabStatus.style.color = 'var(--risk-low)';
     DOM.tokenStatusBadge.textContent = 'VALID JWT';
     DOM.tokenStatusBadge.className = 'badge-tag live-badge';
     DOM.tokenRawDisplay.value = state.jwtToken;
+    if (DOM.modalAuthGate) DOM.modalAuthGate.classList.remove('active');
   } else {
     DOM.authBtnLabel.textContent = '👤 Sign In';
+    if (DOM.btnLogoutHeader) DOM.btnLogoutHeader.style.display = 'none';
     DOM.authTabStatus.textContent = 'Guest';
     DOM.authTabStatus.style.background = 'rgba(255, 255, 255, 0.1)';
     DOM.authTabStatus.style.color = 'var(--text-muted)';
     DOM.tokenStatusBadge.textContent = 'NO TOKEN';
     DOM.tokenStatusBadge.className = 'badge-tag';
     DOM.tokenRawDisplay.value = '';
+    DOM.activeSessionEmail.textContent = 'Not Logged In';
+  }
+}
+
+function bindGateAuthListeners() {
+  // Submit Login from Gate
+  if (DOM.gateLoginForm) {
+    DOM.gateLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = DOM.gateLoginEmail.value.trim();
+      const password = DOM.gateLoginPassword.value.trim();
+
+      DOM.btnGateSubmitLogin.disabled = true;
+      DOM.btnGateSubmitLogin.textContent = '⏳ Authenticating with User Service...';
+
+      try {
+        const res = await fetch(`${state.config.userUrl}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (res.ok) {
+          const token = (await res.text()).trim();
+          state.jwtToken = token;
+          state.userEmail = email;
+          sessionStorage.setItem('ninja_jwt', token);
+          localStorage.setItem('ninja_email', email);
+          updateAuthUI();
+          showToast(`🎉 Logged in as ${email}`, 'success');
+          if (DOM.modalAuthGate) DOM.modalAuthGate.classList.remove('active');
+          fetchSenderAccount();
+          triggerRiskAssessment();
+        } else {
+          const err = await res.text();
+          showToast(`❌ Login Failed: ${err || 'Invalid credentials'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`User Service unreachable: ${err.message}`, 'error');
+      } finally {
+        DOM.btnGateSubmitLogin.disabled = false;
+        DOM.btnGateSubmitLogin.textContent = '🚀 Sign In (User Service)';
+      }
+    });
+  }
+
+  // Switch to Signup from Gate
+  if (DOM.gateLinkSignup) {
+    DOM.gateLinkSignup.addEventListener('click', () => {
+      if (DOM.modalAuthGate) DOM.modalAuthGate.classList.remove('active');
+      switchTab('tab-user');
+      const signupTab = document.querySelector('.subtab-btn[data-subtab="subtab-signup"]');
+      if (signupTab) signupTab.click();
+    });
+  }
+
+  // Continue as Guest from Gate
+  if (DOM.gateLinkGuest) {
+    DOM.gateLinkGuest.addEventListener('click', () => {
+      generateDefaultTestToken();
+      updateAuthUI();
+      if (DOM.modalAuthGate) DOM.modalAuthGate.classList.remove('active');
+      showToast('⚡ Demo Guest Session Activated', 'info');
+    });
+  }
+
+  // Header Logout Button
+  if (DOM.btnLogoutHeader) {
+    DOM.btnLogoutHeader.addEventListener('click', () => {
+      state.jwtToken = '';
+      sessionStorage.removeItem('ninja_jwt');
+      updateAuthUI();
+      showToast('Logged out. Please sign in to continue.', 'info');
+      if (DOM.modalAuthGate) DOM.modalAuthGate.classList.add('active');
+    });
   }
 }
 
@@ -299,9 +392,13 @@ function bindTabNavigation() {
     });
   });
 
-  // Switch to User Tab when top auth button is clicked
+  // Open Auth Gate or User Tab when top auth button is clicked
   DOM.btnOpenAuth.addEventListener('click', () => {
-    switchTab('tab-user');
+    if (!state.jwtToken) {
+      if (DOM.modalAuthGate) DOM.modalAuthGate.classList.add('active');
+    } else {
+      switchTab('tab-user');
+    }
   });
 
   // Switch to Diagnostics when config button clicked
@@ -687,6 +784,12 @@ function updateRiskMeterUI(score, level, factors, message) {
 
 DOM.transferForm.addEventListener('submit', (e) => {
   e.preventDefault();
+
+  if (!state.jwtToken) {
+    showToast('Authentication required: Please sign in with User Service first!', 'error');
+    if (DOM.modalAuthGate) DOM.modalAuthGate.classList.add('active');
+    return;
+  }
 
   const amount = parseFloat(DOM.inputAmount.value);
   const fromAcc = DOM.inputFromAcc.value.trim();
