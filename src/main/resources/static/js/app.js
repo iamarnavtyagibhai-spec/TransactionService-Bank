@@ -361,24 +361,40 @@ function bindAuthScreenEvents() {
     }
   });
 
-  // 4. INSTANT DEMO LOGIN (Pre-signed test token)
-  DOM.btnGuestPass.addEventListener('click', () => {
-    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-    const exp = Math.floor(Date.now() / 1000) + 86400;
-    const iat = Math.floor(Date.now() / 1000);
-    const payload = btoa(JSON.stringify({
-      sub: 'arnavtyagi96@gmail.com',
-      role: 'ROLE_USER',
-      iat: iat,
-      exp: exp
-    }));
-    const signature = 'dGVzdF9zaWduYXR1cmVfbmluamFiYW5rXzIwMjY';
-    state.jwtToken = `${header}.${payload}.${signature}`;
-    state.userEmail = 'arnavtyagi96@gmail.com';
-    sessionStorage.setItem('ninja_jwt', state.jwtToken);
+  // 4. INSTANT DEMO LOGIN (Authentic UserService JWT)
+  DOM.btnGuestPass.addEventListener('click', async () => {
+    DOM.btnGuestPass.disabled = true;
+    DOM.btnGuestPass.textContent = '⚡ Connecting Demo User...';
+
+    // Real signed token generated from UserService
+    const demoJwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkZW1vQG5pbmphYmFuay5jb20iLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc5MTQ5MjQ1OSwiZXhwIjoxNzkxNDk2MDU5fQ.Gz_FQN9Zcdy-Ux9IMtdnlepUmjKK2kc-DU2SDOqwNJU';
+
+    try {
+      const res = await requestAuth('login', { email: 'demo@ninjabank.com', password: 'Demo@123456' });
+      if (res && res.ok) {
+        const token = (await res.text()).trim();
+        state.jwtToken = token;
+        state.userEmail = 'demo@ninjabank.com';
+        sessionStorage.setItem('ninja_jwt', token);
+        sessionStorage.setItem('ninja_logged_in', 'true');
+        localStorage.setItem('ninja_email', 'demo@ninjabank.com');
+        showToast('⚡ Authenticated as demo@ninjabank.com with UserService!', 'success');
+        showDashboardScreen();
+        return;
+      }
+    } catch (err) {
+      // Fallback to pre-signed authentic token
+    } finally {
+      DOM.btnGuestPass.disabled = false;
+      DOM.btnGuestPass.textContent = '⚡ Instant Demo Login (Pre-signed JWT)';
+    }
+
+    state.jwtToken = demoJwt;
+    state.userEmail = 'demo@ninjabank.com';
+    sessionStorage.setItem('ninja_jwt', demoJwt);
     sessionStorage.setItem('ninja_logged_in', 'true');
-    localStorage.setItem('ninja_email', state.userEmail);
-    showToast('⚡ Instant Demo Login Activated', 'info');
+    localStorage.setItem('ninja_email', 'demo@ninjabank.com');
+    showToast('⚡ Instant Demo Login Activated (Live JWT Session)', 'success');
     showDashboardScreen();
   });
 }
@@ -940,9 +956,9 @@ async function pingClusterServices() {
   // 2. Account Service
   const startAcc = performance.now();
   try {
-    const res = await fetch(`${state.config.accountUrl}/accounts/ACC-1001`, { method: 'GET', signal: AbortSignal.timeout(10000) });
+    const res = await fetch(`${state.config.accountUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(10000) });
     const ms = Math.round(performance.now() - startAcc);
-    DOM.dotAccount.className = res.status !== 502 && res.status !== 503 ? 'dot-status' : 'dot-status warning';
+    DOM.dotAccount.className = res.ok ? 'dot-status' : 'dot-status warning';
     DOM.latAccount.textContent = `${ms}ms`;
   } catch {
     DOM.dotAccount.className = 'dot-status warning';
