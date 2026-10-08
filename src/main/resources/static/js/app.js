@@ -207,6 +207,28 @@ function decodeJwtSession() {
 // SCREEN 1: ONBOARDING & AUTHENTICATION (USER SERVICE)
 // ============================================================================
 
+// Smart Auth Caller: uses CORS-enabled Transaction Gateway proxy to reach UserService safely
+async function requestAuth(endpoint, payload) {
+  try {
+    const proxyRes = await fetch(`${state.config.txnUrl}/auth/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (proxyRes.ok || proxyRes.status === 400 || proxyRes.status === 401) {
+      return proxyRes;
+    }
+  } catch (e) {
+    // try direct
+  }
+
+  return fetch(`${state.config.userUrl}/auth/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+}
+
 function bindAuthScreenEvents() {
   // Tab Switch: Sign In vs Sign Up
   DOM.tabBtnSignin.addEventListener('click', () => {
@@ -241,11 +263,7 @@ function bindAuthScreenEvents() {
     DOM.btnSubmitSignin.textContent = '⏳ Authenticating with UserService...';
 
     try {
-      const res = await fetch(`${state.config.userUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      const res = await requestAuth('login', { email, password });
 
       if (res.ok) {
         const token = (await res.text()).trim();
@@ -282,11 +300,7 @@ function bindAuthScreenEvents() {
     DOM.btnSubmitSignup.textContent = '⏳ Creating Account in UserService...';
 
     try {
-      const res = await fetch(`${state.config.userUrl}/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, email, password, phoneNumber, dateOfBirth })
-      });
+      const res = await requestAuth('signup', { firstName, lastName, email, password, phoneNumber, dateOfBirth });
 
       if (res.ok) {
         const msg = await res.text();
@@ -329,11 +343,7 @@ function bindAuthScreenEvents() {
     DOM.btnSubmitOtp.textContent = 'Verifying OTP...';
 
     try {
-      const res = await fetch(`${state.config.userUrl}/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp })
-      });
+      const res = await requestAuth('verify-otp', { email, otp });
 
       if (res.ok) {
         const msg = await res.text();

@@ -60,4 +60,49 @@ public class UserServiceClient {
             // Non-blocking background registration
         }
     }
+
+    public org.springframework.http.ResponseEntity<?> proxySignup(Map<String, Object> request) {
+        try {
+            String response = restClient.post()
+                    .uri("/auth/signup")
+                    .body(request)
+                    .retrieve()
+                    .body(String.class);
+            return org.springframework.http.ResponseEntity.ok(response);
+        } catch (org.springframework.web.client.RestClientResponseException e) {
+            return org.springframework.http.ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.badRequest().body("UserService Error: " + e.getMessage());
+        }
+    }
+
+    public org.springframework.http.ResponseEntity<?> proxyLogin(Map<String, Object> request) {
+        try {
+            String response = restClient.post()
+                    .uri("/auth/login")
+                    .body(request)
+                    .retrieve()
+                    .body(String.class);
+            return org.springframework.http.ResponseEntity.ok(response);
+        } catch (org.springframework.web.client.RestClientResponseException e) {
+            return org.springframework.http.ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.badRequest().body("UserService Error: " + e.getMessage());
+        }
+    }
+
+    public org.springframework.http.ResponseEntity<?> proxyVerifyOtp(Map<String, Object> request) {
+        try {
+            String response = restClient.post()
+                    .uri("/auth/verify-otp")
+                    .body(request)
+                    .retrieve()
+                    .body(String.class);
+            return org.springframework.http.ResponseEntity.ok(response);
+        } catch (org.springframework.web.client.RestClientResponseException e) {
+            return org.springframework.http.ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.badRequest().body("UserService Error: " + e.getMessage());
+        }
+    }
 }
