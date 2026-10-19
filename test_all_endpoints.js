@@ -39,8 +39,8 @@ async function checkAll() {
     { name: 'UserService Login POST', url: 'https://userservice-bank.onrender.com/auth/login', method: 'POST', data: { email: 'dummy@test.com', password: 'wrong' } },
     
     // AccountService
-    { name: 'AccountService Root', url: 'https://accountservice-bank.onrender.com/accounts' },
-    { name: 'AccountService Health', url: 'https://accountservice-bank.onrender.com/health' },
+    { name: 'AccountService Root', url: 'https://accountservice-bank-f76c.onrender.com/accounts' },
+    { name: 'AccountService Health', url: 'https://accountservice-bank-f76c.onrender.com/health' },
 
     // TransactionService
     { name: 'TransactionService Health', url: 'https://transactionservice-bank-oxbz.onrender.com/health' },
