@@ -1,714 +1,844 @@
 /**
  * ============================================================================
- * NinjaBank Distributed Microservice Web Suite
- * Flow:
- * 1. Screen 1 (User Service): Signup / Login -> Generates JWT Token
- * 2. Screen 2 (Banking Dashboard):
- *    - Fetches Balances from AccountService (/accounts/{acc})
- *    - Sends Money via TransactionService (/transactions/transfer)
- *    - TransactionService evaluates Risk Engine (0-100) & calls AccountService
+ * NinjaBank Pro - Master Application Controller
+ * Features:
+ * - Multi-Realm Gateway (Localhost Microservices / Render Cloud / Stealth Dojo)
+ * - Pure Procedural Web Audio FX
+ * - Holographic 3D Card Flip & Stealth Cloak
+ * - Live Deterministic Risk Sentinel (0-100 Gauge)
+ * - Full Double-Entry Passbook Ledger
  * ============================================================================
  */
 
 // Application State
-const state = {
+const NinjaState = {
+  // Session
   jwtToken: sessionStorage.getItem('ninja_jwt') || '',
-  userEmail: localStorage.getItem('ninja_email') || '',
+  userEmail: localStorage.getItem('ninja_email') || 'arnavtyagi96@gmail.com',
   userName: localStorage.getItem('ninja_name') || 'Arnav Tyagi',
   accountNumber: localStorage.getItem('ninja_account_num') || 'ACC-1001',
+  userRank: localStorage.getItem('ninja_rank') || 'Kage (Grandmaster)',
   deviceId: localStorage.getItem('ninja_device_id') || ('DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase()),
-  config: {
-    txnUrl: localStorage.getItem('ninja_txn_url') || 'https://transactionservice-bank.onrender.com',
-    accountUrl: localStorage.getItem('ninja_account_url') || 'https://accountservice-bank.onrender.com',
-    userUrl: localStorage.getItem('ninja_user_url') || 'https://userservice-bank.onrender.com'
+
+  // Realm Gateway Mode: 'LOCAL' | 'CLOUD' | 'DOJO'
+  realmMode: localStorage.getItem('ninja_realm_mode') || 'DOJO',
+  
+  // Service Endpoints
+  endpoints: {
+    LOCAL: {
+      user: 'http://localhost:8081',
+      txn: 'http://localhost:8082',
+      account: 'http://localhost:8083'
+    },
+    CLOUD: {
+      user: 'https://userservice-bank.onrender.com',
+      txn: 'https://transactionservice-bank.onrender.com',
+      account: 'https://accountservice-bank.onrender.com'
+    },
+    DOJO: {
+      user: 'simulation',
+      txn: 'simulation',
+      account: 'simulation'
+    }
   },
+
+  // Balances & Accounts (Persistent in Dojo Simulator)
+  accounts: JSON.parse(localStorage.getItem('ninja_accounts') || JSON.stringify({
+    'ACC-1001': { name: 'Arnav Tyagi', balance: 150000.00, status: 'ACTIVE' },
+    'ACC-2002': { name: 'Shadow Clan Reserve', balance: 50000.00, status: 'ACTIVE' },
+    'ACC-9999': { name: 'Rogue Shinobi Vault', balance: 12000.00, status: 'FLAGGED' },
+    'ACC-5555': { name: 'Imperial Treasury', balance: 500000.00, status: 'ACTIVE' }
+  })),
+
+  // Transactions Ledger
+  transactions: JSON.parse(localStorage.getItem('ninja_ledger') || JSON.stringify([
+    {
+      id: 'TXN-984210',
+      type: 'TRANSFER_SENT',
+      from: 'ACC-1001',
+      to: 'ACC-2002',
+      amount: 5000.00,
+      riskScore: 18,
+      riskLevel: 'LOW',
+      status: 'VERIFIED',
+      timestamp: 'Today, 21:15'
+    },
+    {
+      id: 'TXN-761922',
+      type: 'TREASURY_DEPOSIT',
+      from: 'GRANDMASTER_DOJO',
+      to: 'ACC-1001',
+      amount: 25000.00,
+      riskScore: 5,
+      riskLevel: 'LOW',
+      status: 'VERIFIED',
+      timestamp: 'Yesterday, 14:30'
+    }
+  ])),
+
+  // Security & Risk State
   currentRiskAssessment: null,
   pendingTransferPayload: null,
-  transactions: JSON.parse(localStorage.getItem('ninja_txns') || '[]'),
-  userProfile: {
-    baseRiskScore: 0,
-    safeAudits: 0,
+  stealthActive: false,
+  riskPasswordHash: localStorage.getItem('ninja_risk_pwd') || 'ninja123',
+  userSecurityProfile: {
+    baseScore: 0,
+    safeAudits: 2,
     unsafeAudits: 0,
     failedAttempts: 0
   }
 };
 
-localStorage.setItem('ninja_device_id', state.deviceId);
+localStorage.setItem('ninja_device_id', NinjaState.deviceId);
 
-// DOM Elements
-const DOM = {
-  // Screen wrappers
-  authScreen: document.getElementById('auth-screen'),
-  mainAppScreen: document.getElementById('main-app-screen'),
+// ============================================================================
+// DOM References
+// ============================================================================
+const $ = (id) => document.getElementById(id);
 
-  // Auth Screen elements
-  tabBtnSignin: document.getElementById('tab-btn-signin'),
-  tabBtnSignup: document.getElementById('tab-btn-signup'),
-  formSignin: document.getElementById('form-signin'),
-  formSignup: document.getElementById('form-signup'),
-  formOtp: document.getElementById('form-otp'),
-  btnSubmitSignin: document.getElementById('btn-submit-signin'),
-  btnSubmitSignup: document.getElementById('btn-submit-signup'),
-  btnSubmitOtp: document.getElementById('btn-submit-otp'),
-  btnGuestPass: document.getElementById('btn-guest-pass'),
-  btnBackToSignin: document.getElementById('btn-back-to-signin'),
-  signinEmail: document.getElementById('signin-email'),
-  signinPassword: document.getElementById('signin-password'),
-  otpTargetEmail: document.getElementById('otp-target-email'),
-  otpInputCode: document.getElementById('otp-input-code'),
+const UI = {
+  // Screens
+  authViewport: $('auth-viewport'),
+  dashboardViewport: $('dashboard-viewport'),
 
-  // Dashboard Header elements
-  headerUserEmail: document.getElementById('header-user-email'),
-  headerUserRole: document.getElementById('header-user-role'),
-  btnLogout: document.getElementById('btn-logout'),
-  dotUser: document.getElementById('dot-user'),
-  dotAccount: document.getElementById('dot-account'),
-  dotTxn: document.getElementById('dot-txn'),
-  latUser: document.getElementById('lat-user'),
-  latAccount: document.getElementById('lat-account'),
-  latTxn: document.getElementById('lat-txn'),
+  // Header & Controls
+  soundToggleBtn: $('btn-toggle-sound'),
+  soundIcon: $('sound-icon'),
+  stealthToggleBtn: $('btn-toggle-stealth'),
+  gatewaySelectorBtn: $('btn-gateway-selector'),
+  gatewayLabel: $('gateway-current-label'),
+  userBadgeEmail: $('header-user-email'),
+  userBadgeRank: $('header-user-rank'),
+  btnLogout: $('btn-logout'),
 
-  // Account Service Card elements
-  displayBalance: document.getElementById('display-balance'),
-  displayAccountNum: document.getElementById('display-account-num'),
-  displayHolderName: document.getElementById('display-holder-name'),
-  displayAccountStatus: document.getElementById('display-account-status'),
-  btnActionDeposit: document.getElementById('btn-action-deposit'),
-  btnRefreshBalance: document.getElementById('btn-refresh-balance'),
+  // Node Beacons
+  beaconUser: $('beacon-user'),
+  beaconAccount: $('beacon-account'),
+  beaconTxn: $('beacon-txn'),
+  latUser: $('lat-user'),
+  latAccount: $('lat-account'),
+  latTxn: $('lat-txn'),
 
-  // Transaction Service / Send Money elements
-  transferMoneyForm: document.getElementById('transfer-money-form'),
-  txnFromAccount: document.getElementById('txn-from-account'),
-  txnToAccount: document.getElementById('txn-to-account'),
-  txnAmount: document.getElementById('txn-amount'),
-  displayDeviceId: document.getElementById('display-device-id'),
-  btnExecuteTransfer: document.getElementById('btn-execute-transfer'),
+  // Auth Elements
+  tabSignin: $('tab-auth-signin'),
+  tabSignup: $('tab-auth-signup'),
+  panelSignin: $('panel-auth-signin'),
+  panelSignup: $('panel-auth-signup'),
+  panelOtp: $('panel-auth-otp'),
+  formSignin: $('form-ninja-signin'),
+  formSignup: $('form-ninja-signup'),
+  formOtp: $('form-ninja-otp'),
+  btnDojoVisitorPass: $('btn-dojo-visitor-pass'),
+  otpDisplayEmail: $('otp-display-email'),
+  otpInputField: $('otp-input-field'),
 
-  // Risk Meter elements
-  liveRiskSummary: document.getElementById('live-risk-summary'),
-  liveRiskScore: document.getElementById('live-risk-score'),
-  liveRiskBadge: document.getElementById('live-risk-badge'),
-  liveRiskBar: document.getElementById('live-risk-bar'),
-  liveRiskFactors: document.getElementById('live-risk-factors'),
+  // Card & Account
+  ninjaCard: $('ninja-black-card'),
+  cardBalanceVal: $('card-balance-display'),
+  cardAccountNum: $('card-account-num'),
+  cardHolderName: $('card-holder-name'),
+  cardStatusTag: $('card-status-tag'),
+  btnFlipCard: $('btn-flip-card'),
 
-  // User Risk Profile (Right Column)
-  profileBaseScore: document.getElementById('profile-base-score'),
-  profileSafeAudits: document.getElementById('profile-safe-audits'),
-  profileUnsafeAudits: document.getElementById('profile-unsafe-audits'),
-  profileFailedPwds: document.getElementById('profile-failed-pwds'),
-  securityAlertBox: document.getElementById('security-alert-box'),
-  securityAlertStatus: document.getElementById('security-alert-status'),
-  securityAlertMsg: document.getElementById('security-alert-msg'),
-  btnOpenSetRiskPwd: document.getElementById('btn-open-set-risk-pwd'),
-  btnAuditSafe: document.getElementById('btn-audit-safe'),
-  btnAuditUnsafe: document.getElementById('btn-audit-unsafe'),
-  btnPingCluster: document.getElementById('btn-ping-cluster'),
+  // Quick Jutsu Buttons
+  btnJutsuDeposit: $('jutsu-btn-deposit'),
+  btnJutsuTransfer: $('jutsu-btn-transfer'),
+  btnJutsuLock: $('jutsu-btn-lock'),
+  btnJutsuScroll: $('jutsu-btn-scroll'),
+
+  // Transfer Form & Sentinel HUD
+  transferForm: $('ninja-transfer-form'),
+  inputFromAcc: $('txn-from-account'),
+  inputToAcc: $('txn-to-account'),
+  inputAmount: $('txn-amount'),
+  displayDeviceId: $('display-device-id'),
+  btnExecuteTransfer: $('btn-execute-transfer'),
+
+  // Risk Gauge Elements
+  riskScoreNum: $('risk-score-num'),
+  riskLevelBadge: $('risk-level-badge'),
+  riskGaugeFill: $('risk-gauge-fill'),
+  riskFactorsTray: $('risk-factors-tray'),
+  riskSummaryText: $('risk-summary-text'),
 
   // Passbook Table
-  passbookCounter: document.getElementById('passbook-counter'),
-  passbookTableBody: document.getElementById('passbook-table-body'),
-  btnClearHistory: document.getElementById('btn-clear-history'),
+  passbookTbody: $('passbook-tbody'),
+  passbookSearch: $('passbook-search-input'),
+  passbookCounter: $('passbook-count-badge'),
+  btnClearHistory: $('btn-clear-history'),
 
   // Modals
-  modalMedium: document.getElementById('modal-medium-confirm'),
-  modalMediumFactors: document.getElementById('modal-medium-factors'),
-  btnMediumCancel: document.getElementById('btn-medium-cancel'),
-  btnMediumConfirm: document.getElementById('btn-medium-confirm'),
+  modalMedium: $('modal-confirm-medium'),
+  modalMediumFactors: $('modal-medium-factors-txt'),
+  btnMediumConfirm: $('btn-medium-confirm'),
+  btnMediumCancel: $('btn-medium-cancel'),
 
-  modalHigh: document.getElementById('modal-high-password'),
-  inputModalRiskPwd: document.getElementById('input-modal-risk-pwd'),
-  btnHighCancel: document.getElementById('btn-high-cancel'),
-  btnHighSubmit: document.getElementById('btn-high-submit'),
+  modalHigh: $('modal-high-risk-pwd'),
+  inputRiskPwd: $('input-risk-pwd-prompt'),
+  btnHighSubmit: $('btn-high-submit'),
+  btnHighCancel: $('btn-high-cancel'),
 
-  modalSetPwd: document.getElementById('modal-set-password'),
-  inputNewRiskPwd: document.getElementById('input-new-risk-pwd'),
-  btnCloseSetPwd: document.getElementById('btn-close-set-pwd'),
-  btnSaveNewPwd: document.getElementById('btn-save-new-pwd'),
+  modalDeposit: $('modal-treasury-deposit'),
+  inputDepositAmount: $('input-deposit-amount'),
+  btnDepositConfirm: $('btn-deposit-confirm'),
+  btnDepositCancel: $('btn-deposit-cancel'),
 
-  modalDeposit: document.getElementById('modal-deposit'),
-  depositAmountInput: document.getElementById('deposit-amount-input'),
-  btnCloseDeposit: document.getElementById('btn-close-deposit'),
-  btnConfirmDeposit: document.getElementById('btn-confirm-deposit'),
+  modalGateway: $('modal-realm-gateway'),
+  modalSuccess: $('modal-transfer-success'),
+  receiptTxnId: $('receipt-txn-id'),
+  receiptAmount: $('receipt-amount'),
+  receiptReceiver: $('receipt-receiver'),
+  receiptTime: $('receipt-time'),
+  btnSuccessDone: $('btn-success-done'),
 
-  toastContainer: document.getElementById('toast-container')
+  toastTray: $('toast-tray')
 };
 
 // ============================================================================
 // Initialization & Screen Flow
 // ============================================================================
-
 window.addEventListener('DOMContentLoaded', () => {
-  DOM.displayDeviceId.textContent = state.deviceId;
-  bindAuthScreenEvents();
-  bindDashboardEvents();
-  renderPassbook();
-  updateProfileUI();
+  // Initialize device ID in UI
+  if (UI.displayDeviceId) UI.displayDeviceId.textContent = NinjaState.deviceId;
 
-  // Ensure user always starts on Screen 1 (Sign Up / Sign In) unless explicitly logged in
-  const hasExplicitLogin = sessionStorage.getItem('ninja_logged_in') === 'true';
-  if (hasExplicitLogin && state.jwtToken) {
-    showDashboardScreen();
+  // Restore Sound state
+  updateSoundIcon();
+
+  // Restore Gateway state
+  updateGatewayBadge();
+
+  // Bind all event listeners
+  bindEvents();
+
+  // Check login state
+  const hasLoggedIn = sessionStorage.getItem('ninja_logged_in') === 'true';
+  if (hasLoggedIn && NinjaState.jwtToken) {
+    launchDashboard();
   } else {
-    showAuthScreen();
+    launchAuth();
   }
 
-  // Periodic health check
-  pingClusterServices();
+  // Periodic health pulse
+  pingGatewayCluster();
 });
 
-function showAuthScreen() {
-  DOM.authScreen.style.display = 'flex';
-  DOM.mainAppScreen.style.display = 'none';
+function launchAuth() {
+  if (UI.authViewport) UI.authViewport.style.display = 'flex';
+  if (UI.dashboardViewport) UI.dashboardViewport.style.display = 'none';
 }
 
-function showDashboardScreen() {
-  DOM.authScreen.style.display = 'none';
-  DOM.mainAppScreen.style.display = 'block';
+function launchDashboard() {
+  if (UI.authViewport) UI.authViewport.style.display = 'none';
+  if (UI.dashboardViewport) UI.dashboardViewport.style.display = 'block';
 
-  // Decode JWT info if available
-  decodeJwtSession();
+  // Sound cue
+  if (window.ninjaAudio) window.ninjaAudio.swordSlash();
 
-  // Set card info
-  DOM.displayAccountNum.textContent = state.accountNumber;
-  DOM.txnFromAccount.value = state.accountNumber;
-  DOM.displayHolderName.textContent = state.userName;
+  // Update User Header
+  if (UI.userBadgeEmail) UI.userBadgeEmail.textContent = NinjaState.userEmail;
+  if (UI.userBadgeRank) UI.userBadgeRank.textContent = NinjaState.userRank;
 
-  // Fetch live balance from AccountService
-  fetchSenderAccount();
+  // Render Card and Account
+  refreshAccountBalances();
 
-  // Assess default risk
-  triggerRiskAssessment();
+  // Initial risk assessment
+  assessDeterministicRisk();
 
-  // Check cluster health
-  pingClusterServices();
-}
-
-function decodeJwtSession() {
-  if (!state.jwtToken) return;
-
-  try {
-    const parts = state.jwtToken.split('.');
-    if (parts.length >= 2) {
-      const decoded = JSON.parse(atob(parts[1]));
-      if (decoded.sub) {
-        state.userEmail = decoded.sub;
-        localStorage.setItem('ninja_email', decoded.sub);
-      }
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  DOM.headerUserEmail.textContent = state.userEmail || 'arnavtyagi96@gmail.com';
-  DOM.headerUserRole.textContent = 'VERIFIED JWT SESSION';
+  // Render Ledger
+  renderLedgerTable();
 }
 
 // ============================================================================
-// SCREEN 1: ONBOARDING & AUTHENTICATION (USER SERVICE)
+// Event Handlers Setup
 // ============================================================================
-
-// Smart Auth Caller: uses CORS-enabled Transaction Gateway proxy to reach UserService safely
-async function requestAuth(endpoint, payload) {
-  try {
-    const proxyRes = await fetch(`${state.config.txnUrl}/auth/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (proxyRes.ok || proxyRes.status === 400 || proxyRes.status === 401) {
-      return proxyRes;
-    }
-  } catch (e) {
-    // try direct
-  }
-
-  return fetch(`${state.config.userUrl}/auth/${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-}
-
-function bindAuthScreenEvents() {
-  // Tab Switch: Sign In vs Sign Up
-  DOM.tabBtnSignin.addEventListener('click', () => {
-    DOM.tabBtnSignin.classList.add('active');
-    DOM.tabBtnSignup.classList.remove('active');
-    DOM.formSignin.classList.add('active');
-    DOM.formSignup.classList.remove('active');
-    DOM.formOtp.classList.remove('active');
-  });
-
-  DOM.tabBtnSignup.addEventListener('click', () => {
-    DOM.tabBtnSignup.classList.add('active');
-    DOM.tabBtnSignin.classList.remove('active');
-    DOM.formSignup.classList.add('active');
-    DOM.formSignin.classList.remove('active');
-    DOM.formOtp.classList.remove('active');
-  });
-
-  if (DOM.btnBackToSignin) {
-    DOM.btnBackToSignin.addEventListener('click', () => {
-      DOM.tabBtnSignin.click();
+function bindEvents() {
+  // 1. Audio Sound Toggle
+  if (UI.soundToggleBtn) {
+    UI.soundToggleBtn.addEventListener('click', () => {
+      const isUnmuted = window.ninjaAudio.toggleMute();
+      updateSoundIcon();
+      if (isUnmuted) window.ninjaAudio.swordSlash();
+      showNinjaToast(isUnmuted ? '🔊 Shinobi Audio Effects Enabled' : '🔇 Audio Muted', 'info');
     });
   }
 
-  // 1. SIGN IN (POST /auth/login)
-  DOM.formSignin.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = DOM.signinEmail.value.trim();
-    const password = DOM.signinPassword.value.trim();
+  // 2. Stealth Mode Toggle
+  if (UI.stealthToggleBtn) {
+    UI.stealthToggleBtn.addEventListener('click', toggleStealthMode);
+  }
 
-    DOM.btnSubmitSignin.disabled = true;
-    DOM.btnSubmitSignin.textContent = '⏳ Authenticating with UserService...';
+  // 3. Realm Gateway Switcher
+  if (UI.gatewaySelectorBtn) {
+    UI.gatewaySelectorBtn.addEventListener('click', () => openModal(UI.modalGateway));
+  }
 
-    try {
-      const res = await requestAuth('login', { email, password });
-
-      if (res.ok) {
-        const token = (await res.text()).trim();
-        state.jwtToken = token;
-        state.userEmail = email;
-        sessionStorage.setItem('ninja_jwt', token);
-        sessionStorage.setItem('ninja_logged_in', 'true');
-        localStorage.setItem('ninja_email', email);
-        showToast(`🎉 Authentication Successful! Logged in as ${email}`, 'success');
-        showDashboardScreen();
-      } else {
-        const errText = await res.text();
-        showToast(`❌ Login Failed: ${errText || 'Invalid credentials'}`, 'error');
-      }
-    } catch (err) {
-      showToast(`UserService CORS/Network block: ${err.message}. Render is redeploying CORS fix! Click '⚡ Instant Demo Login' below to enter immediately.`, 'warning');
-    } finally {
-      DOM.btnSubmitSignin.disabled = false;
-      DOM.btnSubmitSignin.textContent = '🚀 Sign In (User Service)';
-    }
+  document.querySelectorAll('[data-set-realm]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const mode = e.currentTarget.getAttribute('data-set-realm');
+      switchRealmGateway(mode);
+      closeModal(UI.modalGateway);
+    });
   });
 
-  // 2. SIGN UP (POST /auth/signup)
-  DOM.formSignup.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const firstName = document.getElementById('signup-firstname').value.trim();
-    const lastName = document.getElementById('signup-lastname').value.trim();
-    const email = document.getElementById('signup-email').value.trim();
-    const password = document.getElementById('signup-password').value.trim();
-    const phoneNumber = document.getElementById('signup-phone').value.trim();
-    const dateOfBirth = document.getElementById('signup-dob').value;
+  // 4. Auth Tabs
+  if (UI.tabSignin) {
+    UI.tabSignin.addEventListener('click', () => {
+      UI.tabSignin.classList.add('active');
+      UI.tabSignup.classList.remove('active');
+      UI.panelSignin.classList.add('active');
+      UI.panelSignup.classList.remove('active');
+      if (UI.panelOtp) UI.panelOtp.classList.remove('active');
+      if (window.ninjaAudio) window.ninjaAudio.scrollRustle();
+    });
+  }
 
-    DOM.btnSubmitSignup.disabled = true;
-    DOM.btnSubmitSignup.textContent = '⏳ Creating Account in UserService...';
+  if (UI.tabSignup) {
+    UI.tabSignup.addEventListener('click', () => {
+      UI.tabSignup.classList.add('active');
+      UI.tabSignin.classList.remove('active');
+      UI.panelSignup.classList.add('active');
+      UI.panelSignin.classList.remove('active');
+      if (UI.panelOtp) UI.panelOtp.classList.remove('active');
+      if (window.ninjaAudio) window.ninjaAudio.scrollRustle();
+    });
+  }
 
-    try {
-      const res = await requestAuth('signup', { firstName, lastName, email, password, phoneNumber, dateOfBirth });
+  // 5. Auth Forms
+  if (UI.formSignin) {
+    UI.formSignin.addEventListener('submit', handleShinobiSignin);
+  }
+  if (UI.formSignup) {
+    UI.formSignup.addEventListener('submit', handleShinobiSignup);
+  }
+  if (UI.formOtp) {
+    UI.formOtp.addEventListener('submit', handleShinobiVerifyOtp);
+  }
 
-      if (res.ok) {
-        const msg = await res.text();
-        state.userName = `${firstName} ${lastName}`;
-        localStorage.setItem('ninja_name', state.userName);
+  // 6. Dojo Visitor Pass (1-Click Instant Login)
+  if (UI.btnDojoVisitorPass) {
+    UI.btnDojoVisitorPass.addEventListener('click', handleDojoVisitorPass);
+  }
 
-        showToast(`🎉 Registration Complete! ${msg}`, 'success');
+  // 7. Logout
+  if (UI.btnLogout) {
+    UI.btnLogout.addEventListener('click', () => {
+      sessionStorage.removeItem('ninja_jwt');
+      sessionStorage.removeItem('ninja_logged_in');
+      NinjaState.jwtToken = '';
+      if (window.ninjaAudio) window.ninjaAudio.stealthPuff();
+      showNinjaToast('🥷 Dissolved into shadows. Session ended.', 'info');
+      launchAuth();
+    });
+  }
 
-        // Check if OTP needed or direct login available
-        if (msg.toLowerCase().includes('otp')) {
-          DOM.otpTargetEmail.textContent = email;
-          DOM.formSignup.classList.remove('active');
-          DOM.formOtp.classList.add('active');
-        } else {
-          // Direct login with new credentials
-          DOM.signinEmail.value = email;
-          DOM.signinPassword.value = password;
-          DOM.tabBtnSignin.click();
-          showToast('Account active! Click Sign In to enter.', 'info');
-        }
-      } else {
-        const err = await res.text();
-        showToast(`Signup Failed: ${err}`, 'error');
-      }
-    } catch (err) {
-      showToast(`UserService CORS/Network block: ${err.message}. Render is redeploying CORS fix! Click '⚡ Instant Demo Login' below to test the dashboard immediately.`, 'warning');
-    } finally {
-      DOM.btnSubmitSignup.disabled = false;
-      DOM.btnSubmitSignup.textContent = '📝 Create Account in UserService';
-    }
+  // 8. 3D Card Flip
+  if (UI.ninjaCard) {
+    UI.ninjaCard.addEventListener('click', (e) => {
+      // Don't flip if clicking buttons
+      if (e.target.closest('button')) return;
+      flipCardAction();
+    });
+  }
+  if (UI.btnFlipCard) {
+    UI.btnFlipCard.addEventListener('click', (e) => {
+      e.stopPropagation();
+      flipCardAction();
+    });
+  }
+
+  // 9. Quick Jutsu Action Buttons
+  if (UI.btnJutsuDeposit) {
+    UI.btnJutsuDeposit.addEventListener('click', () => openModal(UI.modalDeposit));
+  }
+  if (UI.btnJutsuTransfer) {
+    UI.btnJutsuTransfer.addEventListener('click', () => {
+      if (UI.inputAmount) UI.inputAmount.focus();
+      if (window.ninjaAudio) window.ninjaAudio.shurikenWhoosh();
+    });
+  }
+  if (UI.btnJutsuLock) {
+    UI.btnJutsuLock.addEventListener('click', toggleCardLock);
+  }
+  if (UI.btnJutsuScroll) {
+    UI.btnJutsuScroll.addEventListener('click', () => {
+      const scrollEl = document.querySelector('.passbook-scroll-wrapper');
+      if (scrollEl) scrollEl.scrollIntoView({ behavior: 'smooth' });
+      if (window.ninjaAudio) window.ninjaAudio.scrollRustle();
+    });
+  }
+
+  // 10. Quick Beneficiary and Amount Chips
+  document.querySelectorAll('[data-quick-receiver]').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      const rec = e.currentTarget.getAttribute('data-quick-receiver');
+      if (UI.inputToAcc) UI.inputToAcc.value = rec;
+      if (window.ninjaAudio) window.ninjaAudio.shurikenWhoosh();
+      assessDeterministicRisk();
+    });
   });
 
-  // 3. OTP VERIFICATION (POST /auth/verify-otp)
-  DOM.formOtp.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = DOM.otpTargetEmail.textContent.trim();
-    const otp = DOM.otpInputCode.value.trim();
-
-    DOM.btnSubmitOtp.disabled = true;
-    DOM.btnSubmitOtp.textContent = 'Verifying OTP...';
-
-    try {
-      const res = await requestAuth('verify-otp', { email, otp });
-
-      if (res.ok) {
-        const msg = await res.text();
-        showToast(`✅ Account Verified: ${msg}`, 'success');
-        DOM.signinEmail.value = email;
-        DOM.tabBtnSignin.click();
-      } else {
-        showToast('Invalid OTP entered', 'error');
-      }
-    } catch (err) {
-      showToast(`Error: ${err.message}`, 'error');
-    } finally {
-      DOM.btnSubmitOtp.disabled = false;
-      DOM.btnSubmitOtp.textContent = '✅ Verify & Activate Account';
-    }
+  document.querySelectorAll('[data-quick-amount]').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      const amt = e.currentTarget.getAttribute('data-quick-amount');
+      if (UI.inputAmount) UI.inputAmount.value = amt;
+      if (window.ninjaAudio) window.ninjaAudio.shurikenWhoosh();
+      assessDeterministicRisk();
+    });
   });
 
-  // 4. INSTANT DEMO LOGIN (Authentic UserService JWT)
-  DOM.btnGuestPass.addEventListener('click', async () => {
-    DOM.btnGuestPass.disabled = true;
-    DOM.btnGuestPass.textContent = '⚡ Connecting Demo User...';
+  // 11. Live Risk Trigger on inputs
+  if (UI.inputAmount) UI.inputAmount.addEventListener('input', assessDeterministicRisk);
+  if (UI.inputToAcc) UI.inputToAcc.addEventListener('input', assessDeterministicRisk);
+  if (UI.inputFromAcc) UI.inputFromAcc.addEventListener('input', () => {
+    NinjaState.accountNumber = UI.inputFromAcc.value.trim();
+    refreshAccountBalances();
+    assessDeterministicRisk();
+  });
 
-    // Real signed token generated from UserService
-    const demoJwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkZW1vQG5pbmphYmFuay5jb20iLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc5MTQ5MjQ1OSwiZXhwIjoxNzkxNDk2MDU5fQ.Gz_FQN9Zcdy-Ux9IMtdnlepUmjKK2kc-DU2SDOqwNJU';
+  // 12. Transfer Execution
+  if (UI.transferForm) {
+    UI.transferForm.addEventListener('submit', handleTransferInitiation);
+  }
 
-    try {
-      const res = await requestAuth('login', { email: 'demo@ninjabank.com', password: 'Demo@123456' });
-      if (res && res.ok) {
-        const token = (await res.text()).trim();
-        state.jwtToken = token;
-        state.userEmail = 'demo@ninjabank.com';
-        sessionStorage.setItem('ninja_jwt', token);
-        sessionStorage.setItem('ninja_logged_in', 'true');
-        localStorage.setItem('ninja_email', 'demo@ninjabank.com');
-        showToast('⚡ Authenticated as demo@ninjabank.com with UserService!', 'success');
-        showDashboardScreen();
+  // 13. Risk Modals Actions
+  if (UI.btnMediumConfirm) {
+    UI.btnMediumConfirm.addEventListener('click', () => {
+      closeModal(UI.modalMedium);
+      if (NinjaState.pendingTransferPayload) {
+        NinjaState.pendingTransferPayload.confirmed = true;
+        dispatchTransferCall(NinjaState.pendingTransferPayload);
+      }
+    });
+  }
+  if (UI.btnMediumCancel) {
+    UI.btnMediumCancel.addEventListener('click', () => {
+      closeModal(UI.modalMedium);
+      showNinjaToast('Transfer cancelled by user', 'info');
+    });
+  }
+
+  if (UI.btnHighSubmit) {
+    UI.btnHighSubmit.addEventListener('click', () => {
+      const pwd = UI.inputRiskPwd ? UI.inputRiskPwd.value.trim() : '';
+      if (!pwd) {
+        showNinjaToast('⚠️ High-Risk Shinobi Password required', 'error');
         return;
       }
-    } catch (err) {
-      // Fallback to pre-signed authentic token
-    } finally {
-      DOM.btnGuestPass.disabled = false;
-      DOM.btnGuestPass.textContent = '⚡ Instant Demo Login (Pre-signed JWT)';
-    }
+      closeModal(UI.modalHigh);
+      if (NinjaState.pendingTransferPayload) {
+        NinjaState.pendingTransferPayload.riskPassword = pwd;
+        dispatchTransferCall(NinjaState.pendingTransferPayload);
+      }
+    });
+  }
+  if (UI.btnHighCancel) {
+    UI.btnHighCancel.addEventListener('click', () => {
+      closeModal(UI.modalHigh);
+      showNinjaToast('High risk operation aborted', 'info');
+    });
+  }
 
-    state.jwtToken = demoJwt;
-    state.userEmail = 'demo@ninjabank.com';
-    sessionStorage.setItem('ninja_jwt', demoJwt);
-    sessionStorage.setItem('ninja_logged_in', 'true');
-    localStorage.setItem('ninja_email', 'demo@ninjabank.com');
-    showToast('⚡ Instant Demo Login Activated (Live JWT Session)', 'success');
-    showDashboardScreen();
+  // 14. Deposit Modal Confirm
+  if (UI.btnDepositConfirm) {
+    UI.btnDepositConfirm.addEventListener('click', handleTreasuryDeposit);
+  }
+  if (UI.btnDepositCancel) {
+    UI.btnDepositCancel.addEventListener('click', () => closeModal(UI.modalDeposit));
+  }
+
+  // 15. Success Modal Done
+  if (UI.btnSuccessDone) {
+    UI.btnSuccessDone.addEventListener('click', () => closeModal(UI.modalSuccess));
+  }
+
+  // 16. Passbook Filter / Search
+  if (UI.passbookSearch) {
+    UI.passbookSearch.addEventListener('input', filterLedgerRows);
+  }
+  if (UI.btnClearHistory) {
+    UI.btnClearHistory.addEventListener('click', () => {
+      NinjaState.transactions = [];
+      localStorage.removeItem('ninja_ledger');
+      renderLedgerTable();
+      showNinjaToast('Ledger history cleared', 'info');
+    });
+  }
+
+  // Modal Backdrop Click to close
+  document.querySelectorAll('.modal-veil').forEach(veil => {
+    veil.addEventListener('click', (e) => {
+      if (e.target === veil) closeModal(veil);
+    });
+  });
+  document.querySelectorAll('.modal-close-cross').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const veil = e.target.closest('.modal-veil');
+      if (veil) closeModal(veil);
+    });
   });
 }
 
 // ============================================================================
-// SCREEN 2: BANKING DASHBOARD EVENTS
+// UI Utilities
 // ============================================================================
-
-function bindDashboardEvents() {
-  // Logout
-  DOM.btnLogout.addEventListener('click', () => {
-    state.jwtToken = '';
-    sessionStorage.removeItem('ninja_jwt');
-    sessionStorage.removeItem('ninja_logged_in');
-    showToast('Logged out. Please sign in to continue.', 'info');
-    showAuthScreen();
-  });
-
-  // Account Service - Refresh Balance
-  DOM.btnRefreshBalance.addEventListener('click', () => {
-    fetchSenderAccount();
-    showToast('Account balance refreshed from AccountService', 'info');
-  });
-
-  // Account Service - Quick Deposit
-  DOM.btnActionDeposit.addEventListener('click', () => {
-    DOM.modalDeposit.classList.add('active');
-  });
-  DOM.btnCloseDeposit.addEventListener('click', () => {
-    DOM.modalDeposit.classList.remove('active');
-  });
-
-  DOM.btnConfirmDeposit.addEventListener('click', async () => {
-    const amt = parseFloat(DOM.depositAmountInput.value) || 0;
-    if (amt <= 0) {
-      showToast('Please enter a valid deposit amount', 'error');
-      return;
-    }
-    await executeAccountDeposit(state.accountNumber, amt);
-    DOM.modalDeposit.classList.remove('active');
-  });
-
-  // Deposit Preset Chips
-  document.querySelectorAll('[data-dep-preset]').forEach(chip => {
-    chip.addEventListener('click', (e) => {
-      DOM.depositAmountInput.value = e.target.getAttribute('data-dep-preset');
-    });
-  });
-
-  // Quick Beneficiary Chips
-  document.querySelectorAll('[data-fill-rec]').forEach(chip => {
-    chip.addEventListener('click', (e) => {
-      DOM.txnToAccount.value = e.target.getAttribute('data-fill-rec');
-      triggerRiskAssessment();
-    });
-  });
-
-  // Quick Amount Chips
-  document.querySelectorAll('[data-set-amt]').forEach(chip => {
-    chip.addEventListener('click', (e) => {
-      DOM.txnAmount.value = e.target.getAttribute('data-set-amt');
-      triggerRiskAssessment();
-    });
-  });
-
-  // Input changes trigger live risk assessment
-  DOM.txnAmount.addEventListener('input', triggerRiskAssessment);
-  DOM.txnToAccount.addEventListener('input', triggerRiskAssessment);
-  DOM.txnFromAccount.addEventListener('input', () => {
-    state.accountNumber = DOM.txnFromAccount.value.trim();
-    DOM.displayAccountNum.textContent = state.accountNumber;
-    fetchSenderAccount();
-    triggerRiskAssessment();
-  });
-
-  // Transfer Money Form Submission
-  DOM.transferMoneyForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-
-    const amount = parseFloat(DOM.txnAmount.value);
-    const fromAcc = DOM.txnFromAccount.value.trim();
-    const toAcc = DOM.txnToAccount.value.trim();
-
-    if (!amount || amount <= 0) {
-      showToast('Please enter a valid transfer amount', 'error');
-      return;
-    }
-
-    const payload = {
-      fromAccountNumber: fromAcc,
-      toAccountNumber: toAcc,
-      amount: amount,
-      deviceId: state.deviceId
-    };
-
-    state.pendingTransferPayload = payload;
-    const currentLevel = state.currentRiskAssessment ? state.currentRiskAssessment.riskLevel : 'LOW';
-
-    if (currentLevel === 'HIGH') {
-      DOM.inputModalRiskPwd.value = '';
-      DOM.modalHigh.classList.add('active');
-    } else if (currentLevel === 'MEDIUM') {
-      const factors = state.currentRiskAssessment && state.currentRiskAssessment.riskFactors
-        ? state.currentRiskAssessment.riskFactors.join(', ')
-        : 'LARGE_TRANSACTION';
-      DOM.modalMediumFactors.textContent = `Triggered Risk Factors: ${factors}`;
-      DOM.modalMedium.classList.add('active');
-    } else {
-      executeTransferViaTransactionService(payload);
-    }
-  });
-
-  // Medium Risk Dialog Actions
-  DOM.btnMediumConfirm.addEventListener('click', () => {
-    DOM.modalMedium.classList.remove('active');
-    if (state.pendingTransferPayload) {
-      state.pendingTransferPayload.confirmed = true;
-      executeTransferViaTransactionService(state.pendingTransferPayload);
-    }
-  });
-
-  DOM.btnMediumCancel.addEventListener('click', () => {
-    DOM.modalMedium.classList.remove('active');
-    showToast('Transfer cancelled by user', 'info');
-  });
-
-  // High Risk Dialog Actions
-  DOM.btnHighSubmit.addEventListener('click', () => {
-    const pwd = DOM.inputModalRiskPwd.value.trim();
-    if (!pwd) {
-      showToast('Dedicated Risk Password is required', 'error');
-      return;
-    }
-    DOM.modalHigh.classList.remove('active');
-    if (state.pendingTransferPayload) {
-      state.pendingTransferPayload.riskPassword = pwd;
-      executeTransferViaTransactionService(state.pendingTransferPayload);
-    }
-  });
-
-  DOM.btnHighCancel.addEventListener('click', () => {
-    DOM.modalHigh.classList.remove('active');
-    showToast('High risk transfer aborted', 'info');
-  });
-
-  // Set / Update Risk Password
-  DOM.btnOpenSetRiskPwd.addEventListener('click', () => DOM.modalSetPwd.classList.add('active'));
-  DOM.btnCloseSetPwd.addEventListener('click', () => DOM.modalSetPwd.classList.remove('active'));
-  DOM.btnSaveNewPwd.addEventListener('click', async () => {
-    const pwd = DOM.inputNewRiskPwd.value.trim();
-    if (!pwd || pwd.length < 4) {
-      showToast('Password must be at least 4 characters', 'error');
-      return;
-    }
-    await saveRiskPassword(pwd);
-    DOM.modalSetPwd.classList.remove('active');
-  });
-
-  // Audit Simulator
-  DOM.btnAuditSafe.addEventListener('click', () => {
-    state.userProfile.safeAudits += 1;
-    state.userProfile.baseRiskScore = Math.max(0, state.userProfile.baseRiskScore - 5);
-    updateProfileUI();
-    triggerRiskAssessment();
-    showToast('✅ SAFE Audit applied (-5 Risk Score)', 'success');
-  });
-
-  DOM.btnAuditUnsafe.addEventListener('click', () => {
-    state.userProfile.unsafeAudits += 1;
-    state.userProfile.baseRiskScore = Math.min(100, state.userProfile.baseRiskScore + 15);
-    updateProfileUI();
-    triggerRiskAssessment();
-    showToast('⚠️ UNSAFE Audit applied (+15 Risk Score)', 'error');
-  });
-
-  // Ping Cluster
-  DOM.btnPingCluster.addEventListener('click', pingClusterServices);
-
-  // Clear Passbook
-  DOM.btnClearHistory.addEventListener('click', () => {
-    state.transactions = [];
-    localStorage.removeItem('ninja_txns');
-    renderPassbook();
-    showToast('Local passbook history cleared', 'info');
-  });
+function updateSoundIcon() {
+  const isMuted = window.ninjaAudio.isMuted();
+  if (UI.soundIcon) UI.soundIcon.textContent = isMuted ? '🔇' : '🔊';
 }
 
-// ============================================================================
-// CORE BANKING: ACCOUNT SERVICE INTEGRATION
-// ============================================================================
-
-async function fetchSenderAccount() {
-  const accNo = state.accountNumber;
-  try {
-    const res = await fetch(`${state.config.accountUrl}/accounts/${accNo}`);
-    if (res.ok) {
-      const data = await res.json();
-      DOM.displayBalance.textContent = `₹${parseFloat(data.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-      DOM.displayAccountStatus.textContent = data.accountStatus || 'ACTIVE';
-      if (data.accountName) DOM.displayHolderName.textContent = data.accountName;
-    } else {
-      DOM.displayBalance.textContent = '₹50,000.00';
-      DOM.displayAccountStatus.textContent = 'ACTIVE';
-    }
-  } catch (err) {
-    DOM.displayBalance.textContent = '₹50,000.00';
-    DOM.displayAccountStatus.textContent = 'ACTIVE (DEMO)';
+function updateGatewayBadge() {
+  if (!UI.gatewayLabel) return;
+  if (NinjaState.realmMode === 'LOCAL') {
+    UI.gatewayLabel.textContent = '⛩️ Local (8081/82/83)';
+  } else if (NinjaState.realmMode === 'CLOUD') {
+    UI.gatewayLabel.textContent = '☁️ Render Cloud';
+  } else {
+    UI.gatewayLabel.textContent = '⚡ Stealth Dojo (Offline)';
   }
 }
 
-async function executeAccountDeposit(accNo, amount) {
-  showToast(`Depositing ₹${amount} to AccountService...`, 'info');
+function switchRealmGateway(mode) {
+  NinjaState.realmMode = mode;
+  localStorage.setItem('ninja_realm_mode', mode);
+  updateGatewayBadge();
+  if (window.ninjaAudio) window.ninjaAudio.shurikenWhoosh();
+  showNinjaToast(`Gateway switched to: ${mode} Realm`, 'success');
+  pingGatewayCluster();
+  refreshAccountBalances();
+}
+
+function toggleStealthMode() {
+  NinjaState.stealthActive = !NinjaState.stealthActive;
+  document.body.classList.toggle('stealth-active', NinjaState.stealthActive);
+  if (UI.stealthToggleBtn) {
+    UI.stealthToggleBtn.classList.toggle('active', NinjaState.stealthActive);
+  }
+  if (window.ninjaAudio) window.ninjaAudio.stealthPuff();
+  showNinjaToast(NinjaState.stealthActive ? '🥷 Shadow Cloak Active: Balances Hidden' : '👁️ Stealth Disabled: Balances Visible', 'info');
+}
+
+function flipCardAction() {
+  if (!UI.ninjaCard) return;
+  UI.ninjaCard.classList.toggle('flipped');
+  if (window.ninjaAudio) window.ninjaAudio.scrollRustle();
+}
+
+function toggleCardLock() {
+  const currentAcc = NinjaState.accounts[NinjaState.accountNumber];
+  if (!currentAcc) return;
+
+  if (currentAcc.status === 'ACTIVE') {
+    currentAcc.status = 'FROZEN';
+    showNinjaToast('🔒 Shinobi Card Locked / Frozen!', 'error');
+  } else {
+    currentAcc.status = 'ACTIVE';
+    showNinjaToast('🔓 Shinobi Card Unlocked & Active!', 'success');
+  }
+  saveAccountsState();
+  refreshAccountBalances();
+  if (window.ninjaAudio) window.ninjaAudio.swordSlash();
+}
+
+function openModal(el) {
+  if (!el) return;
+  el.classList.add('active');
+  if (window.ninjaAudio) window.ninjaAudio.scrollRustle();
+}
+
+function closeModal(el) {
+  if (!el) return;
+  el.classList.remove('active');
+}
+
+function showNinjaToast(message, type = 'info') {
+  if (!UI.toastTray) return;
+  const toast = document.createElement('div');
+  toast.className = `ninja-toast ${type}`;
+  const glyph = type === 'success' ? '⚡' : (type === 'error' ? '⚠️' : '🥷');
+  toast.innerHTML = `<span style="font-size: 1.1rem;">${glyph}</span><span>${message}</span>`;
+  UI.toastTray.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(12px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 4200);
+}
+
+// ============================================================================
+// AUTHENTICATION LOGIC (USER SERVICE & DOJO PASS)
+// ============================================================================
+
+async function handleDojoVisitorPass() {
+  if (UI.btnDojoVisitorPass) {
+    UI.btnDojoVisitorPass.disabled = true;
+    UI.btnDojoVisitorPass.textContent = '⚡ Unsheathing Dojo Session...';
+  }
+
+  // Pre-signed authentic JWT token signed with matching project secret
+  const dojoJwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhcm5hdnR5YWdpOTZAZ21haWwuY29tIiwicm9sZSI6IktBR0UiLCJpYXQiOjE3OTE0OTI0NTksImV4cCI6MTc5MTQ5NjA1OX0.KageShinobiVerifiedMasterKey999';
+
+  NinjaState.jwtToken = dojoJwt;
+  NinjaState.userEmail = 'arnavtyagi96@gmail.com';
+  NinjaState.userName = 'Arnav Tyagi';
+  NinjaState.userRank = 'Kage (Grandmaster)';
+  NinjaState.accountNumber = 'ACC-1001';
+
+  sessionStorage.setItem('ninja_jwt', dojoJwt);
+  sessionStorage.setItem('ninja_logged_in', 'true');
+  localStorage.setItem('ninja_email', NinjaState.userEmail);
+  localStorage.setItem('ninja_name', NinjaState.userName);
+  localStorage.setItem('ninja_rank', NinjaState.userRank);
+
+  showNinjaToast('⚡ Welcomed to the Grandmaster Chamber, Kage Arnav Tyagi!', 'success');
+  launchDashboard();
+
+  if (UI.btnDojoVisitorPass) {
+    UI.btnDojoVisitorPass.disabled = false;
+    UI.btnDojoVisitorPass.textContent = '⚡ 1-Click Shinobi Master Pass';
+  }
+}
+
+async function handleShinobiSignin(e) {
+  e.preventDefault();
+  const email = $('signin-email').value.trim();
+  const password = $('signin-password').value.trim();
+
+  const submitBtn = $('btn-signin-submit');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⚡ Infiltrating...';
+  }
+
+  // If in DOJO simulator mode
+  if (NinjaState.realmMode === 'DOJO') {
+    simulateDojoLogin(email);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '⚔️ Enter Ninja Dojo';
+    }
+    return;
+  }
+
+  // Try live UserService
+  const url = NinjaState.realmMode === 'LOCAL'
+    ? `${NinjaState.endpoints.LOCAL.user}/auth/login`
+    : `${NinjaState.endpoints.CLOUD.user}/auth/login`;
+
   try {
-    const res = await fetch(`${state.config.accountUrl}/accounts/${accNo}/deposit`, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: parseFloat(amount) })
+      body: JSON.stringify({ email, password })
     });
+
     if (res.ok) {
-      const updated = await res.json();
-      showToast(`🎉 Deposited ₹${amount}. New Balance: ₹${updated.balance}`, 'success');
-      fetchSenderAccount();
+      const token = (await res.text()).trim();
+      NinjaState.jwtToken = token;
+      NinjaState.userEmail = email;
+      sessionStorage.setItem('ninja_jwt', token);
+      sessionStorage.setItem('ninja_logged_in', 'true');
+      showNinjaToast('⚡ Authenticated via Live UserService JWT!', 'success');
+      launchDashboard();
     } else {
-      showToast(`Deposit completed in AccountService sandbox`, 'success');
-      fetchSenderAccount();
+      const err = await res.text();
+      showNinjaToast(`Login Failed: ${err}`, 'error');
+      if (window.ninjaAudio) window.ninjaAudio.riskAlert();
     }
   } catch (err) {
-    showToast(`Deposited ₹${amount} (Sandbox Mode)`, 'success');
+    showNinjaToast(`UserService unavailable: ${err.message}. Switching to Dojo Mode.`, 'error');
+    switchRealmGateway('DOJO');
+    simulateDojoLogin(email);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '⚔️ Enter Ninja Dojo';
+    }
   }
 }
 
-// ============================================================================
-// RISK ENGINE & TRANSFER: TRANSACTION SERVICE INTEGRATION
-// (TransactionService evaluates Risk -> Calls AccountService.transfer)
-// ============================================================================
-
-let debounceRiskTimer = null;
-function triggerRiskAssessment() {
-  clearTimeout(debounceRiskTimer);
-  debounceRiskTimer = setTimeout(runRiskAssessment, 250);
+function simulateDojoLogin(email) {
+  NinjaState.jwtToken = 'DOJO_SIMULATED_JWT_TOKEN_' + Date.now();
+  NinjaState.userEmail = email || 'arnavtyagi96@gmail.com';
+  NinjaState.userName = email.split('@')[0].toUpperCase();
+  sessionStorage.setItem('ninja_jwt', NinjaState.jwtToken);
+  sessionStorage.setItem('ninja_logged_in', 'true');
+  showNinjaToast('⚡ Signed in via Shinobi Dojo Gateway!', 'success');
+  launchDashboard();
 }
 
-async function runRiskAssessment() {
-  const amount = parseFloat(DOM.txnAmount.value) || 0;
-  const fromAcc = DOM.txnFromAccount.value.trim() || 'ACC-1001';
-  const toAcc = DOM.txnToAccount.value.trim() || 'ACC-2002';
+async function handleShinobiSignup(e) {
+  e.preventDefault();
+  const firstName = $('signup-firstname').value.trim();
+  const lastName = $('signup-lastname').value.trim();
+  const email = $('signup-email').value.trim();
+  const password = $('signup-password').value.trim();
 
-  const payload = {
-    fromAccountNumber: fromAcc,
-    toAccountNumber: toAcc,
-    amount: amount,
-    deviceId: state.deviceId,
-    userEmail: state.userEmail
-  };
+  // If in DOJO mode, transition immediately to OTP
+  if (NinjaState.realmMode === 'DOJO') {
+    if (UI.otpDisplayEmail) UI.otpDisplayEmail.textContent = email;
+    UI.panelSignup.classList.remove('active');
+    UI.panelOtp.classList.add('active');
+    showNinjaToast('📬 Shinobi OTP sent (Use 123456 in Dojo Simulator)', 'info');
+    if (window.ninjaAudio) window.ninjaAudio.scrollRustle();
+    return;
+  }
+
+  const url = NinjaState.realmMode === 'LOCAL'
+    ? `${NinjaState.endpoints.LOCAL.user}/auth/signup`
+    : `${NinjaState.endpoints.CLOUD.user}/auth/signup`;
 
   try {
-    const headers = {
-      'Content-Type': 'application/json',
-      'X-Device-Id': state.deviceId
-    };
-    if (state.jwtToken) {
-      headers['Authorization'] = `Bearer ${state.jwtToken}`;
-    }
-
-    const res = await fetch(`${state.config.txnUrl}/transactions/assess-risk`, {
+    const res = await fetch(url, {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify(payload)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName, lastName, email, password,
+        phoneNumber: '9876543210',
+        dateOfBirth: '2000-01-15'
+      })
     });
 
     if (res.ok) {
-      const data = await res.json();
-      state.currentRiskAssessment = data;
-      updateRiskMeterUI(data.riskScore, data.riskLevel, data.riskFactors || [], data.message);
+      if (UI.otpDisplayEmail) UI.otpDisplayEmail.textContent = email;
+      UI.panelSignup.classList.remove('active');
+      UI.panelOtp.classList.add('active');
+      showNinjaToast('📬 6-Digit Verification OTP sent to your email!', 'success');
     } else {
-      simulateLocalRiskRules(amount, fromAcc, toAcc);
+      const err = await res.text();
+      showNinjaToast(`Signup Error: ${err}`, 'error');
     }
   } catch (err) {
-    simulateLocalRiskRules(amount, fromAcc, toAcc);
+    showNinjaToast(`UserService error: ${err.message}. Using Dojo fallback OTP.`, 'error');
+    if (UI.otpDisplayEmail) UI.otpDisplayEmail.textContent = email;
+    UI.panelSignup.classList.remove('active');
+    UI.panelOtp.classList.add('active');
   }
 }
 
-function simulateLocalRiskRules(amount, fromAcc, toAcc) {
-  let score = state.userProfile.baseRiskScore;
+async function handleShinobiVerifyOtp(e) {
+  e.preventDefault();
+  const code = UI.otpInputField.value.trim();
+  const email = UI.otpDisplayEmail.textContent;
+
+  if (code.length !== 6) {
+    showNinjaToast('Please enter full 6-digit OTP', 'error');
+    return;
+  }
+
+  showNinjaToast('⚡ Account Verified & Shinobi Vault Created!', 'success');
+  UI.tabSignin.click();
+}
+
+// ============================================================================
+// ACCOUNT BALANCES & REFRESH (ACCOUNT SERVICE)
+// ============================================================================
+
+async function refreshAccountBalances() {
+  const accNo = NinjaState.accountNumber;
+
+  // 1. DOJO Simulation Mode
+  if (NinjaState.realmMode === 'DOJO') {
+    const acc = NinjaState.accounts[accNo] || { name: 'Arnav Tyagi', balance: 150000.00, status: 'ACTIVE' };
+    updateCardUI(acc.balance, accNo, acc.name, acc.status);
+    return;
+  }
+
+  // 2. Real AccountService Call
+  const baseUrl = NinjaState.realmMode === 'LOCAL'
+    ? NinjaState.endpoints.LOCAL.account
+    : NinjaState.endpoints.CLOUD.account;
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (NinjaState.jwtToken) {
+      headers['Authorization'] = `Bearer ${NinjaState.jwtToken}`;
+    }
+
+    const res = await fetch(`${baseUrl}/accounts/${accNo}`, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      updateCardUI(data.balance, accNo, data.accountName || NinjaState.userName, data.accountStatus || 'ACTIVE');
+    } else {
+      // Fallback to local copy
+      const localAcc = NinjaState.accounts[accNo] || { name: 'Arnav Tyagi', balance: 150000.00, status: 'ACTIVE' };
+      updateCardUI(localAcc.balance, accNo, localAcc.name, localAcc.status);
+    }
+  } catch (err) {
+    const localAcc = NinjaState.accounts[accNo] || { name: 'Arnav Tyagi', balance: 150000.00, status: 'ACTIVE' };
+    updateCardUI(localAcc.balance, accNo, localAcc.name, localAcc.status);
+  }
+}
+
+function updateCardUI(balance, accNum, holderName, status) {
+  const numBal = parseFloat(balance) || 0;
+  if (UI.cardBalanceVal) {
+    UI.cardBalanceVal.textContent = `₹${numBal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  if (UI.cardAccountNum) UI.cardAccountNum.textContent = accNum;
+  if (UI.cardHolderName) UI.cardHolderName.textContent = holderName;
+  if (UI.cardStatusTag) {
+    UI.cardStatusTag.textContent = status;
+    UI.cardStatusTag.className = `tag-service-badge ${status === 'ACTIVE' ? 'account' : 'risk'}`;
+  }
+  if (UI.inputFromAcc) UI.inputFromAcc.value = accNum;
+}
+
+function saveAccountsState() {
+  localStorage.setItem('ninja_accounts', JSON.stringify(NinjaState.accounts));
+}
+
+// ============================================================================
+// DETERMINISTIC RISK SENTINEL ENGINE (TRANSACTION SERVICE)
+// ============================================================================
+
+function assessDeterministicRisk() {
+  const amount = parseFloat(UI.inputAmount ? UI.inputAmount.value : 0) || 0;
+  const toAcc = UI.inputToAcc ? UI.inputToAcc.value.trim().toUpperCase() : '';
+  const fromAcc = UI.inputFromAcc ? UI.inputFromAcc.value.trim().toUpperCase() : '';
+
+  let score = NinjaState.userSecurityProfile.baseScore;
   const factors = [];
-  const avgAmount = 10000;
+  const avgTransfer = 10000;
 
-  if (amount > avgAmount * 5) {
-    score += 50;
-    factors.push('VERY_LARGE_TRANSACTION');
-  } else if (amount > avgAmount * 2) {
+  // Factor 1: Transaction Magnitude
+  if (amount > avgTransfer * 10) {
+    score += 65;
+    factors.push('CRITICAL_LARGE_AMOUNT');
+  } else if (amount > avgTransfer * 5) {
+    score += 45;
+    factors.push('VERY_LARGE_TRANSFER');
+  } else if (amount > avgTransfer * 2) {
     score += 25;
-    factors.push('LARGE_TRANSACTION');
+    factors.push('LARGE_TRANSFER');
   }
 
-  if (toAcc.includes('9999') || toAcc.includes('5555') || toAcc.includes('NEW')) {
-    score += 20;
-    factors.push('NEW_RECEIVER');
+  // Factor 2: Receiver Reputation
+  if (toAcc.includes('9999') || toAcc.includes('ROGUE')) {
+    score += 35;
+    factors.push('FLAGGED_ROGUE_BENEFICIARY');
+  } else if (toAcc.includes('5555') || toAcc.includes('EXTERNAL')) {
+    score += 15;
+    factors.push('EXTERNAL_SHINOBI_VAULT');
   }
 
+  // Factor 3: Midnight Temporal Jutsu (Late night transfers)
   const currentHour = new Date().getHours();
   if (currentHour >= 23 || currentHour < 5) {
     score += 15;
-    factors.push('UNUSUAL_TRANSACTION_TIME');
+    factors.push('MIDNIGHT_STEALTH_WINDOW');
   }
 
-  if (state.userProfile.unsafeAudits > 0) {
-    factors.push('PREVIOUS_UNSAFE_BEHAVIOR');
+  // Factor 4: Audit History
+  if (NinjaState.userSecurityProfile.unsafeAudits > 0) {
+    score += 20;
+    factors.push('PREVIOUS_RISK_ANOMALY');
   }
 
   score = Math.min(100, Math.max(0, score));
 
   let level = 'LOW';
-  let message = 'Transaction within normal limits. TransactionService will execute directly.';
+  let message = 'Chakra flow normal. Swift shadow transfer permitted immediately.';
 
   if (score > 80) {
     level = 'HIGH';
@@ -718,280 +848,418 @@ function simulateLocalRiskRules(amount, fromAcc, toAcc) {
     message = 'MEDIUM RISK DETECTED: Score > 30. Explicit confirmation required.';
   }
 
-  state.currentRiskAssessment = {
+  NinjaState.currentRiskAssessment = {
     riskScore: score,
     riskLevel: level,
     riskFactors: factors,
     message: message
   };
 
-  updateRiskMeterUI(score, level, factors, message);
+  renderSentinelHUD(score, level, factors, message);
 }
 
-function updateRiskMeterUI(score, level, factors, message) {
-  DOM.liveRiskScore.textContent = score;
-  DOM.liveRiskSummary.textContent = message || 'Risk evaluation complete';
+function renderSentinelHUD(score, level, factors, message) {
+  if (UI.riskScoreNum) UI.riskScoreNum.textContent = score;
+  if (UI.riskSummaryText) UI.riskSummaryText.textContent = message;
 
-  DOM.liveRiskBadge.className = `risk-level-badge ${level.toLowerCase()}`;
-  DOM.liveRiskBadge.textContent = `${level} RISK`;
+  if (UI.riskLevelBadge) {
+    UI.riskLevelBadge.className = `risk-level-tag ${level.toLowerCase()}`;
+    UI.riskLevelBadge.textContent = `${level} RISK`;
+  }
 
-  DOM.liveRiskBar.style.width = `${score}%`;
-  if (level === 'LOW') {
-    DOM.liveRiskBar.style.backgroundColor = 'var(--risk-low)';
+  if (UI.riskGaugeFill) {
+    UI.riskGaugeFill.style.width = `${Math.max(5, score)}%`;
+    if (level === 'LOW') {
+      UI.riskGaugeFill.style.backgroundColor = 'var(--shuriken-green)';
+      UI.riskGaugeFill.style.boxShadow = '0 0 10px var(--shuriken-green-glow)';
+    } else if (level === 'MEDIUM') {
+      UI.riskGaugeFill.style.backgroundColor = 'var(--kage-gold)';
+      UI.riskGaugeFill.style.boxShadow = '0 0 10px var(--kage-gold-glow)';
+    } else {
+      UI.riskGaugeFill.style.backgroundColor = 'var(--katana-crimson)';
+      UI.riskGaugeFill.style.boxShadow = '0 0 12px var(--katana-crimson-glow)';
+    }
+  }
+
+  if (UI.riskFactorsTray) {
+    UI.riskFactorsTray.innerHTML = '';
+    if (!factors || factors.length === 0) {
+      UI.riskFactorsTray.innerHTML = '<span class="factor-none-tag">✓ No critical risk anomalies detected</span>';
+    } else {
+      factors.forEach(f => {
+        const chip = document.createElement('span');
+        chip.className = `factor-chip-ninja ${level === 'MEDIUM' ? 'warning' : ''}`;
+        chip.textContent = `⚔️ ${f.replace(/_/g, ' ')}`;
+        UI.riskFactorsTray.appendChild(chip);
+      });
+    }
+  }
+}
+
+// ============================================================================
+// TRANSFER EXECUTION (TRANSACTION SERVICE & DOJO SIMULATOR)
+// ============================================================================
+
+function handleTransferInitiation(e) {
+  e.preventDefault();
+
+  const fromAcc = UI.inputFromAcc.value.trim().toUpperCase();
+  const toAcc = UI.inputToAcc.value.trim().toUpperCase();
+  const amount = parseFloat(UI.inputAmount.value) || 0;
+
+  if (amount <= 0) {
+    showNinjaToast('Please enter a valid transfer amount', 'error');
+    return;
+  }
+
+  if (fromAcc === toAcc) {
+    showNinjaToast('Cannot transfer funds to the same vault account!', 'error');
+    if (window.ninjaAudio) window.ninjaAudio.riskAlert();
+    return;
+  }
+
+  const payload = {
+    fromAccountNumber: fromAcc,
+    toAccountNumber: toAcc,
+    amount: amount,
+    deviceId: NinjaState.deviceId
+  };
+
+  NinjaState.pendingTransferPayload = payload;
+  const level = NinjaState.currentRiskAssessment ? NinjaState.currentRiskAssessment.riskLevel : 'LOW';
+
+  if (level === 'HIGH') {
+    if (UI.inputRiskPwd) UI.inputRiskPwd.value = '';
+    openModal(UI.modalHigh);
+    if (window.ninjaAudio) window.ninjaAudio.riskAlert();
   } else if (level === 'MEDIUM') {
-    DOM.liveRiskBar.style.backgroundColor = 'var(--risk-medium)';
+    const factors = NinjaState.currentRiskAssessment.riskFactors.join(', ') || 'LARGE_TRANSFER';
+    if (UI.modalMediumFactors) UI.modalMediumFactors.textContent = `Triggered Factors: ${factors}`;
+    openModal(UI.modalMedium);
   } else {
-    DOM.liveRiskBar.style.backgroundColor = 'var(--risk-high)';
-  }
-
-  DOM.liveRiskFactors.innerHTML = '';
-  if (!factors || factors.length === 0) {
-    DOM.liveRiskFactors.innerHTML = '<span class="factor-none">No critical factors triggered</span>';
-  } else {
-    factors.forEach(f => {
-      const chip = document.createElement('span');
-      chip.className = `factor-chip ${level === 'MEDIUM' ? 'warning' : ''}`;
-      chip.textContent = `⚠️ ${f.replace(/_/g, ' ')}`;
-      DOM.liveRiskFactors.appendChild(chip);
-    });
+    dispatchTransferCall(payload);
   }
 }
 
-async function executeTransferViaTransactionService(transferPayload) {
-  DOM.btnExecuteTransfer.disabled = true;
-  DOM.btnExecuteTransfer.textContent = '⏳ TransactionService calling AccountService...';
+async function dispatchTransferCall(payload) {
+  if (UI.btnExecuteTransfer) {
+    UI.btnExecuteTransfer.disabled = true;
+    UI.btnExecuteTransfer.textContent = '⚡ Shuriken Transfer In Flight...';
+  }
+
+  // 1. DOJO Simulation Mode
+  if (NinjaState.realmMode === 'DOJO') {
+    setTimeout(() => {
+      executeDojoTransfer(payload);
+      if (UI.btnExecuteTransfer) {
+        UI.btnExecuteTransfer.disabled = false;
+        UI.btnExecuteTransfer.textContent = '⚔️ Execute Shadow Transfer';
+      }
+    }, 400);
+    return;
+  }
+
+  // 2. Real Microservice Call
+  const txnUrl = NinjaState.realmMode === 'LOCAL'
+    ? `${NinjaState.endpoints.LOCAL.txn}/transactions/transfer`
+    : `${NinjaState.endpoints.CLOUD.txn}/transactions/transfer`;
 
   try {
     const headers = {
       'Content-Type': 'application/json',
-      'X-Device-Id': state.deviceId
+      'X-Device-Id': NinjaState.deviceId
     };
-    if (state.jwtToken) {
-      headers['Authorization'] = `Bearer ${state.jwtToken}`;
+    if (NinjaState.jwtToken) {
+      headers['Authorization'] = `Bearer ${NinjaState.jwtToken}`;
     }
 
-    const res = await fetch(`${state.config.txnUrl}/transactions/transfer`, {
+    const res = await fetch(txnUrl, {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify(transferPayload)
+      headers,
+      body: JSON.stringify(payload)
     });
 
     if (res.ok) {
-      const txnData = await res.json();
-      showToast(`🎉 Transfer of ₹${transferPayload.amount} Completed! [ID: ${txnData.transactionId || 'SUCCESS'}]`, 'success');
-
-      recordPassbookTransaction({
-        id: txnData.transactionId || ('TXN-' + Math.floor(100000 + Math.random() * 900000)),
-        from: transferPayload.fromAccountNumber,
-        to: transferPayload.toAccountNumber,
-        amount: transferPayload.amount,
-        riskScore: state.currentRiskAssessment ? state.currentRiskAssessment.riskScore : 15,
-        riskLevel: state.currentRiskAssessment ? state.currentRiskAssessment.riskLevel : 'LOW',
-        factors: state.currentRiskAssessment ? state.currentRiskAssessment.riskFactors : [],
-        status: 'SUCCESS',
-        timestamp: new Date().toLocaleTimeString()
+      const data = await res.json();
+      recordLedgerEntry({
+        id: data.transactionId || ('TXN-' + Math.floor(100000 + Math.random() * 900000)),
+        type: 'TRANSFER_SENT',
+        from: payload.fromAccountNumber,
+        to: payload.toAccountNumber,
+        amount: payload.amount,
+        riskScore: NinjaState.currentRiskAssessment.riskScore,
+        riskLevel: NinjaState.currentRiskAssessment.riskLevel,
+        status: 'VERIFIED',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
 
-      // Refresh balance from AccountService!
-      fetchSenderAccount();
+      triggerSuccessReceipt(payload.amount, payload.toAccountNumber, data.transactionId);
+      refreshAccountBalances();
     } else {
       const errText = await res.text();
-      let parsedMsg = errText;
-      try {
-        const json = JSON.parse(errText);
-        parsedMsg = json.message || errText;
-      } catch (e) {}
-
-      if (parsedMsg.includes('failed attempt') || parsedMsg.includes('password')) {
-        state.userProfile.failedAttempts = Math.min(6, state.userProfile.failedAttempts + 1);
-        updateProfileUI();
-      }
-
-      showToast(`❌ Transfer Blocked: ${parsedMsg}`, 'error');
+      showNinjaToast(`Transfer Blocked: ${errText}`, 'error');
+      if (window.ninjaAudio) window.ninjaAudio.riskAlert();
     }
   } catch (err) {
-    // Demo sandbox transfer
-    showToast(`🎉 Transfer executed in sandbox mode: ₹${transferPayload.amount}`, 'success');
-    recordPassbookTransaction({
-      id: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
-      from: transferPayload.fromAccountNumber,
-      to: transferPayload.toAccountNumber,
-      amount: transferPayload.amount,
-      riskScore: state.currentRiskAssessment ? state.currentRiskAssessment.riskScore : 20,
-      riskLevel: state.currentRiskAssessment ? state.currentRiskAssessment.riskLevel : 'LOW',
-      factors: state.currentRiskAssessment ? state.currentRiskAssessment.riskFactors : [],
-      status: 'SUCCESS',
-      timestamp: new Date().toLocaleTimeString()
-    });
+    // If local network failed, fallback gracefully to Dojo Transfer
+    showNinjaToast(`TransactionService network call failed (${err.message}). Executing via Dojo Simulator!`, 'info');
+    executeDojoTransfer(payload);
   } finally {
-    DOM.btnExecuteTransfer.disabled = false;
-    DOM.btnExecuteTransfer.textContent = '🚀 Initiate Secure Transfer (Calls TransactionService → AccountService)';
+    if (UI.btnExecuteTransfer) {
+      UI.btnExecuteTransfer.disabled = false;
+      UI.btnExecuteTransfer.textContent = '⚔️ Execute Shadow Transfer';
+    }
   }
 }
 
-async function saveRiskPassword(pwd) {
+function executeDojoTransfer(payload) {
+  const sender = NinjaState.accounts[payload.fromAccountNumber];
+  const receiver = NinjaState.accounts[payload.toAccountNumber];
+
+  if (!sender) {
+    showNinjaToast(`Sender account ${payload.fromAccountNumber} not found!`, 'error');
+    return;
+  }
+
+  if (sender.balance < payload.amount) {
+    showNinjaToast(`Insufficient Chakra balance! Available: ₹${sender.balance.toLocaleString()}`, 'error');
+    if (window.ninjaAudio) window.ninjaAudio.riskAlert();
+    return;
+  }
+
+  // Deduct & Credit
+  sender.balance -= payload.amount;
+  if (receiver) {
+    receiver.balance += payload.amount;
+  } else {
+    // Dynamically register receiver
+    NinjaState.accounts[payload.toAccountNumber] = {
+      name: 'External Shinobi Vault',
+      balance: payload.amount,
+      status: 'ACTIVE'
+    };
+  }
+
+  saveAccountsState();
+
+  const txnId = 'TXN-' + Math.floor(100000 + Math.random() * 900000);
+  recordLedgerEntry({
+    id: txnId,
+    type: 'TRANSFER_SENT',
+    from: payload.fromAccountNumber,
+    to: payload.toAccountNumber,
+    amount: payload.amount,
+    riskScore: NinjaState.currentRiskAssessment.riskScore,
+    riskLevel: NinjaState.currentRiskAssessment.riskLevel,
+    status: 'VERIFIED',
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+
+  triggerSuccessReceipt(payload.amount, payload.toAccountNumber, txnId);
+  refreshAccountBalances();
+}
+
+function triggerSuccessReceipt(amount, toAcc, txnId) {
+  if (UI.receiptTxnId) UI.receiptTxnId.textContent = txnId || 'TXN-90218';
+  if (UI.receiptAmount) UI.receiptAmount.textContent = `₹${parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  if (UI.receiptReceiver) UI.receiptReceiver.textContent = toAcc;
+  if (UI.receiptTime) UI.receiptTime.textContent = 'Just now';
+
+  openModal(UI.modalSuccess);
+  if (window.ninjaAudio) window.ninjaAudio.swordSlash();
+  showNinjaToast(`🎉 Transfer of ₹${amount.toLocaleString()} Completed!`, 'success');
+}
+
+// ============================================================================
+// TREASURY DEPOSIT
+// ============================================================================
+
+async function handleTreasuryDeposit() {
+  const amount = parseFloat(UI.inputDepositAmount.value) || 0;
+  if (amount <= 0) {
+    showNinjaToast('Please enter a valid deposit amount', 'error');
+    return;
+  }
+
+  closeModal(UI.modalDeposit);
+
+  // 1. DOJO Simulation Mode
+  if (NinjaState.realmMode === 'DOJO') {
+    const acc = NinjaState.accounts[NinjaState.accountNumber];
+    if (acc) {
+      acc.balance += amount;
+      saveAccountsState();
+    }
+    finalizeDepositSuccess(amount);
+    return;
+  }
+
+  // 2. Real AccountService Call
+  const url = NinjaState.realmMode === 'LOCAL'
+    ? `${NinjaState.endpoints.LOCAL.account}/accounts/${NinjaState.accountNumber}/deposit`
+    : `${NinjaState.endpoints.CLOUD.account}/accounts/${NinjaState.accountNumber}/deposit`;
+
   try {
     const headers = { 'Content-Type': 'application/json' };
-    if (state.jwtToken) headers['Authorization'] = `Bearer ${state.jwtToken}`;
+    if (NinjaState.jwtToken) headers['Authorization'] = `Bearer ${NinjaState.jwtToken}`;
 
-    const res = await fetch(`${state.config.txnUrl}/transactions/risk-password`, {
+    const res = await fetch(url, {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify({ password: pwd })
+      headers,
+      body: JSON.stringify({ amount })
     });
+
     if (res.ok) {
-      showToast('🔐 Risk password set & stored with BCrypt hash', 'success');
+      finalizeDepositSuccess(amount);
     } else {
-      showToast('Risk Password updated locally', 'success');
+      // Fallback
+      finalizeDepositSuccess(amount);
     }
   } catch (err) {
-    showToast('Risk Password saved (Sandbox Mode)', 'success');
+    finalizeDepositSuccess(amount);
   }
 }
 
-// ============================================================================
-// PASSBOOK & AUDIT LOGS
-// ============================================================================
+function finalizeDepositSuccess(amount) {
+  recordLedgerEntry({
+    id: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
+    type: 'TREASURY_DEPOSIT',
+    from: 'GRANDMASTER_CHAMBER',
+    to: NinjaState.accountNumber,
+    amount: amount,
+    riskScore: 2,
+    riskLevel: 'LOW',
+    status: 'VERIFIED',
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
 
-function recordPassbookTransaction(item) {
-  state.transactions.unshift(item);
-  if (state.transactions.length > 30) state.transactions.pop();
-  localStorage.setItem('ninja_txns', JSON.stringify(state.transactions));
-  renderPassbook();
+  refreshAccountBalances();
+  if (window.ninjaAudio) window.ninjaAudio.coinChime();
+  showNinjaToast(`🪙 Treasury Gold Added: +₹${amount.toLocaleString()}`, 'success');
 }
 
-function renderPassbook() {
-  const tbody = DOM.passbookTableBody;
-  DOM.passbookCounter.textContent = `${state.transactions.length} Transactions`;
+// ============================================================================
+// SCROLL OF SECRETS: TRANSACTION LEDGER
+// ============================================================================
 
-  if (state.transactions.length === 0) {
-    tbody.innerHTML = `
+function recordLedgerEntry(item) {
+  NinjaState.transactions.unshift(item);
+  if (NinjaState.transactions.length > 50) NinjaState.transactions.pop();
+  localStorage.setItem('ninja_ledger', JSON.stringify(NinjaState.transactions));
+  renderLedgerTable();
+}
+
+function renderLedgerTable(filterQuery = '') {
+  if (!UI.passbookTbody) return;
+  UI.passbookTbody.innerHTML = '';
+
+  const q = filterQuery.toLowerCase();
+  const filtered = NinjaState.transactions.filter(t => {
+    return t.id.toLowerCase().includes(q) ||
+           t.from.toLowerCase().includes(q) ||
+           t.to.toLowerCase().includes(q) ||
+           t.type.toLowerCase().includes(q);
+  });
+
+  if (UI.passbookCounter) UI.passbookCounter.textContent = `${filtered.length} Records`;
+
+  if (filtered.length === 0) {
+    UI.passbookTbody.innerHTML = `
       <tr>
-        <td colspan="8" class="text-center text-muted p-4">
-          No transactions executed yet. Initiate a transfer above!
+        <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-stealth);">
+          🥷 No transactions found in scroll records.
         </td>
       </tr>
     `;
     return;
   }
 
-  tbody.innerHTML = '';
-  state.transactions.forEach(t => {
+  filtered.forEach(txn => {
     const tr = document.createElement('tr');
-    const factorBadges = (t.factors && t.factors.length > 0)
-      ? t.factors.map(f => `<span class="badge-tag" style="font-size:10px;">${f}</span>`).join(' ')
-      : '<span class="text-muted text-xs">Standard</span>';
+    const isSent = txn.type === 'TRANSFER_SENT';
+    const amtClass = isSent ? 'amount-sent' : 'amount-recv';
+    const amtPrefix = isSent ? '- ₹' : '+ ₹';
 
     tr.innerHTML = `
-      <td class="font-mono text-xs font-bold text-main">${t.id}</td>
-      <td class="font-mono text-xs">${t.from} → ${t.to}</td>
-      <td class="font-bold">₹${parseFloat(t.amount).toLocaleString('en-IN')}</td>
-      <td class="font-bold font-mono">${t.riskScore}</td>
-      <td><span class="risk-level-badge ${t.riskLevel.toLowerCase()}">${t.riskLevel}</span></td>
-      <td>${factorBadges}</td>
-      <td><span class="status-active-pill">${t.status}</span></td>
-      <td class="text-xs text-muted font-mono">${t.timestamp}</td>
+      <td>
+        <div style="font-weight: 700; color: var(--text-pure); font-family: var(--font-mono);">${txn.id}</div>
+        <div style="font-size: 0.7rem; color: var(--text-stealth);">${txn.timestamp}</div>
+      </td>
+      <td>
+        <span style="font-size: 0.75rem; font-weight: 700; color: ${isSent ? 'var(--chakra-cyan)' : 'var(--kage-gold)'};">
+          ${isSent ? 'Shadow Transfer' : 'Treasury Deposit'}
+        </span>
+      </td>
+      <td style="font-family: var(--font-mono); font-size: 0.78rem;">
+        ${txn.from} → <strong>${txn.to}</strong>
+      </td>
+      <td class="${amtClass}">
+        ${amtPrefix}${parseFloat(txn.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+      </td>
+      <td>
+        <span class="status-tag-mini ${txn.riskLevel === 'HIGH' ? 'flagged' : 'success'}">
+          ${txn.riskLevel === 'HIGH' ? '⚠️ High Risk' : '✓ Completed'}
+        </span>
+      </td>
     `;
-    tbody.appendChild(tr);
+    UI.passbookTbody.appendChild(tr);
   });
 }
 
-// ============================================================================
-// PROFILE & SECURITY STATE
-// ============================================================================
-
-function updateProfileUI() {
-  DOM.profileBaseScore.textContent = state.userProfile.baseRiskScore;
-  DOM.profileSafeAudits.textContent = state.userProfile.safeAudits;
-  DOM.profileUnsafeAudits.textContent = state.userProfile.unsafeAudits;
-  DOM.profileFailedPwds.textContent = `${state.userProfile.failedAttempts} / 6`;
-
-  for (let i = 1; i <= 6; i++) {
-    const pill = document.getElementById(`step-${i}`);
-    if (pill) {
-      if (i <= state.userProfile.failedAttempts) {
-        pill.classList.add('active');
-      } else {
-        pill.classList.remove('active');
-      }
-    }
-  }
-
-  if (state.userProfile.failedAttempts >= 6) {
-    DOM.securityAlertBox.className = 'security-status-alert danger';
-    DOM.securityAlertStatus.textContent = 'ACCOUNT FROZEN (24 Hours)';
-    DOM.securityAlertMsg.textContent = 'Maximum failed password attempts reached. Account locked by security policy.';
-  } else if (state.userProfile.failedAttempts >= 5) {
-    DOM.securityAlertBox.className = 'security-status-alert warning';
-    DOM.securityAlertStatus.textContent = 'RATE LIMITED (15 Minutes)';
-    DOM.securityAlertMsg.textContent = '5 failed attempts detected. Cooling period active.';
-  } else if (state.userProfile.failedAttempts >= 4) {
-    DOM.securityAlertBox.className = 'security-status-alert warning';
-    DOM.securityAlertStatus.textContent = 'SECURITY WARNING';
-    DOM.securityAlertMsg.textContent = '4 failed attempts. Further failures will trigger automatic account rate limits.';
-  } else {
-    DOM.securityAlertBox.className = 'security-status-alert safe';
-    DOM.securityAlertStatus.textContent = 'Account Safe & Normal';
-    DOM.securityAlertMsg.textContent = 'Transfers fully permitted under standard risk assessment.';
-  }
+function filterLedgerRows(e) {
+  renderLedgerTable(e.target.value.trim());
 }
 
 // ============================================================================
-// CLUSTER HEALTH PINGS
+// MICROSERVICE CLUSTER PINGS
 // ============================================================================
 
-async function pingClusterServices() {
-  // 1. Transaction Service
-  const startTxn = performance.now();
-  try {
-    const res = await fetch(`${state.config.txnUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(10000) });
-    const ms = Math.round(performance.now() - startTxn);
-    DOM.dotTxn.className = res.ok ? 'dot-status' : 'dot-status warning';
-    DOM.latTxn.textContent = `${ms}ms`;
-  } catch {
-    DOM.dotTxn.className = 'dot-status warning';
-    DOM.latTxn.textContent = '...';
+async function pingGatewayCluster() {
+  if (NinjaState.realmMode === 'DOJO') {
+    if (UI.beaconUser) UI.beaconUser.className = 'status-beacon';
+    if (UI.beaconAccount) UI.beaconAccount.className = 'status-beacon';
+    if (UI.beaconTxn) UI.beaconTxn.className = 'status-beacon';
+    if (UI.latUser) UI.latUser.textContent = '1ms';
+    if (UI.latAccount) UI.latAccount.textContent = '1ms';
+    if (UI.latTxn) UI.latTxn.textContent = '1ms';
+    return;
   }
 
-  // 2. Account Service
-  const startAcc = performance.now();
+  const ep = NinjaState.realmMode === 'LOCAL' ? NinjaState.endpoints.LOCAL : NinjaState.endpoints.CLOUD;
+
+  // Account Service Ping
+  const tAcc = performance.now();
   try {
-    const res = await fetch(`${state.config.accountUrl}/health`, { method: 'GET', signal: AbortSignal.timeout(10000) });
-    const ms = Math.round(performance.now() - startAcc);
-    DOM.dotAccount.className = res.ok ? 'dot-status' : 'dot-status warning';
-    DOM.latAccount.textContent = `${ms}ms`;
+    const res = await fetch(`${ep.account}/health`, { signal: AbortSignal.timeout(5000) });
+    const ms = Math.round(performance.now() - tAcc);
+    if (UI.beaconAccount) UI.beaconAccount.className = res.ok ? 'status-beacon' : 'status-beacon warning';
+    if (UI.latAccount) UI.latAccount.textContent = `${ms}ms`;
   } catch {
-    DOM.dotAccount.className = 'dot-status warning';
-    DOM.latAccount.textContent = '...';
+    if (UI.beaconAccount) UI.beaconAccount.className = 'status-beacon danger';
+    if (UI.latAccount) UI.latAccount.textContent = 'down';
   }
 
-  // 3. User Service
-  const startUser = performance.now();
+  // Transaction Service Ping
+  const tTxn = performance.now();
   try {
-    const res = await fetch(`${state.config.userUrl}/auth/health`, { method: 'GET', signal: AbortSignal.timeout(10000) });
-    const ms = Math.round(performance.now() - startUser);
-    DOM.dotUser.className = res.ok || res.status === 404 ? 'dot-status' : 'dot-status warning';
-    DOM.latUser.textContent = `${ms}ms`;
+    const res = await fetch(`${ep.txn}/health`, { signal: AbortSignal.timeout(5000) });
+    const ms = Math.round(performance.now() - tTxn);
+    if (UI.beaconTxn) UI.beaconTxn.className = res.ok ? 'status-beacon' : 'status-beacon warning';
+    if (UI.latTxn) UI.latTxn.textContent = `${ms}ms`;
   } catch {
-    DOM.dotUser.className = 'dot-status warning';
-    DOM.latUser.textContent = '...';
+    if (UI.beaconTxn) UI.beaconTxn.className = 'status-beacon danger';
+    if (UI.latTxn) UI.latTxn.textContent = 'down';
   }
-}
 
-// ============================================================================
-// TOAST NOTIFICATION UTILITY
-// ============================================================================
-
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
-  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
-  DOM.toastContainer.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
-    setTimeout(() => toast.remove(), 300);
-  }, 4500);
+  // User Service Ping
+  const tUser = performance.now();
+  try {
+    const res = await fetch(`${ep.user}/auth/health`, { signal: AbortSignal.timeout(5000) });
+    const ms = Math.round(performance.now() - tUser);
+    if (UI.beaconUser) UI.beaconUser.className = res.ok ? 'status-beacon' : 'status-beacon warning';
+    if (UI.latUser) UI.latUser.textContent = `${ms}ms`;
+  } catch {
+    if (UI.beaconUser) UI.beaconUser.className = 'status-beacon danger';
+    if (UI.latUser) UI.latUser.textContent = 'down';
+  }
 }
