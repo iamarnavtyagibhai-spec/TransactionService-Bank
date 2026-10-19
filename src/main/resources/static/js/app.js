@@ -32,7 +32,7 @@ const NinjaState = {
     },
     CLOUD: {
       user: 'https://userservice-bank.onrender.com',
-      txn: 'https://transactionservice-bank.onrender.com',
+      txn: 'https://transactionservice-bank-oxbz.onrender.com',
       account: 'https://accountservice-bank.onrender.com'
     },
     DOJO: {
