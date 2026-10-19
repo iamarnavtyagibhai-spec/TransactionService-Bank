@@ -31,7 +31,7 @@ const NinjaState = {
       account: 'http://localhost:8083'
     },
     CLOUD: {
-      user: 'https://userservice-bank.onrender.com',
+      user: 'https://userservice-bank-spgh.onrender.com',
       txn: 'https://transactionservice-bank-oxbz.onrender.com',
       account: 'https://accountservice-bank-f76c.onrender.com'
     },
