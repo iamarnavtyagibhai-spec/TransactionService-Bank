@@ -579,6 +579,18 @@ h1, h2, h3, h4, .brand-title, .auth-title {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.shake-error {
+  animation: shakeError 0.4s ease-in-out !important;
+  border-color: var(--katana-crimson) !important;
+  box-shadow: 0 0 14px rgba(255, 42, 109, 0.45) !important;
+}
+
 .auth-divider-line {
   position: relative;
   text-align: center;

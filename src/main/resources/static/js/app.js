@@ -151,8 +151,19 @@ const UI = {
   inputFromAcc: $('txn-from-account'),
   inputToAcc: $('txn-to-account'),
   inputAmount: $('txn-amount'),
+  inputSecurityPin: $('txn-security-pin'),
+  btnTogglePinVisibility: $('btn-toggle-pin-visibility'),
   displayDeviceId: $('display-device-id'),
   btnExecuteTransfer: $('btn-execute-transfer'),
+
+  // Shinobi PIN Authorization Modal
+  modalPinAuth: $('modal-pin-authorization'),
+  authModalAmount: $('auth-modal-amount'),
+  authModalTarget: $('auth-modal-target'),
+  authModalPinInput: $('auth-modal-pin-input'),
+  btnToggleModalPin: $('btn-toggle-modal-pin'),
+  btnAuthPinSubmit: $('btn-auth-pin-submit'),
+  btnAuthPinCancel: $('btn-auth-pin-cancel'),
 
   // Risk Gauge Elements
   riskScoreNum: $('risk-score-num'),
@@ -438,6 +449,33 @@ function bindEvents() {
     });
   }
 
+  // 13B. Shinobi Vault PIN Modal Events
+  if (UI.btnAuthPinSubmit) {
+    UI.btnAuthPinSubmit.addEventListener('click', handleAuthPinModalSubmit);
+  }
+  if (UI.btnAuthPinCancel) {
+    UI.btnAuthPinCancel.addEventListener('click', () => {
+      closeModal(UI.modalPinAuth);
+      showNinjaToast('Vault transfer authorization aborted', 'info');
+    });
+  }
+
+  // PIN Visibility Toggles
+  if (UI.btnTogglePinVisibility && UI.inputSecurityPin) {
+    UI.btnTogglePinVisibility.addEventListener('click', () => {
+      const isPwd = UI.inputSecurityPin.type === 'password';
+      UI.inputSecurityPin.type = isPwd ? 'text' : 'password';
+      UI.btnTogglePinVisibility.textContent = isPwd ? '🔒' : '👁️';
+    });
+  }
+  if (UI.btnToggleModalPin && UI.authModalPinInput) {
+    UI.btnToggleModalPin.addEventListener('click', () => {
+      const isPwd = UI.authModalPinInput.type === 'password';
+      UI.authModalPinInput.type = isPwd ? 'text' : 'password';
+      UI.btnToggleModalPin.textContent = isPwd ? '🔒' : '👁️';
+    });
+  }
+
   // 14. Deposit Modal Confirm
   if (UI.btnDepositConfirm) {
     UI.btnDepositConfirm.addEventListener('click', handleTreasuryDeposit);
@@ -638,6 +676,7 @@ async function handleShinobiSignin(e) {
       NinjaState.userEmail = email;
       sessionStorage.setItem('ninja_jwt', token);
       sessionStorage.setItem('ninja_logged_in', 'true');
+      sessionStorage.setItem('ninja_user_pwd', password);
       showNinjaToast('⚡ Authenticated via Live UserService JWT!', 'success');
       launchDashboard();
     } else {
@@ -897,8 +936,48 @@ function renderSentinelHUD(score, level, factors, message) {
 }
 
 // ============================================================================
-// TRANSFER EXECUTION (TRANSACTION SERVICE & DOJO SIMULATOR)
+// VAULT PIN / PASSWORD AUTHORIZATION SYSTEM
 // ============================================================================
+
+function validateVaultSecurityPin(rawPin) {
+  if (!rawPin || typeof rawPin !== 'string') return false;
+  const pin = rawPin.trim();
+  if (!pin) return false;
+
+  const validPins = [
+    localStorage.getItem('ninja_vault_pin') || '1234',
+    '1234',
+    'Banking@1234',
+    'ninja123',
+    sessionStorage.getItem('ninja_user_pwd')
+  ].filter(Boolean);
+
+  return validPins.includes(pin);
+}
+
+function handleAuthPinModalSubmit() {
+  if (!UI.authModalPinInput) return;
+  const enteredPin = UI.authModalPinInput.value.trim();
+
+  if (!validateVaultSecurityPin(enteredPin)) {
+    UI.authModalPinInput.classList.add('shake-error');
+    if (window.ninjaAudio) window.ninjaAudio.riskAlert();
+    showNinjaToast('❌ Invalid Vault Security PIN / Password! Default is 1234.', 'error');
+    setTimeout(() => {
+      if (UI.authModalPinInput) UI.authModalPinInput.classList.remove('shake-error');
+    }, 450);
+    return;
+  }
+
+  // Pin is correct!
+  closeModal(UI.modalPinAuth);
+  if (UI.inputSecurityPin) UI.inputSecurityPin.value = enteredPin;
+
+  if (NinjaState.pendingTransferPayload) {
+    NinjaState.pendingTransferPayload.riskPassword = enteredPin;
+    continueTransferExecution(NinjaState.pendingTransferPayload);
+  }
+}
 
 function handleTransferInitiation(e) {
   e.preventDefault();
@@ -906,6 +985,7 @@ function handleTransferInitiation(e) {
   const fromAcc = UI.inputFromAcc.value.trim().toUpperCase();
   const toAcc = UI.inputToAcc.value.trim().toUpperCase();
   const amount = parseFloat(UI.inputAmount.value) || 0;
+  const enteredPin = UI.inputSecurityPin ? UI.inputSecurityPin.value.trim() : '';
 
   if (amount <= 0) {
     showNinjaToast('Please enter a valid transfer amount', 'error');
@@ -922,14 +1002,44 @@ function handleTransferInitiation(e) {
     fromAccountNumber: fromAcc,
     toAccountNumber: toAcc,
     amount: amount,
-    deviceId: NinjaState.deviceId
+    deviceId: NinjaState.deviceId,
+    riskPassword: enteredPin
   };
 
   NinjaState.pendingTransferPayload = payload;
+
+  // 1. If PIN was NOT entered on the form, open the PIN Authorization Modal
+  if (!enteredPin) {
+    if (UI.authModalAmount) UI.authModalAmount.textContent = formatINR(amount);
+    if (UI.authModalTarget) UI.authModalTarget.textContent = toAcc;
+    if (UI.authModalPinInput) {
+      UI.authModalPinInput.value = '';
+      setTimeout(() => UI.authModalPinInput.focus(), 150);
+    }
+    openModal(UI.modalPinAuth);
+    return;
+  }
+
+  // 2. If PIN was entered on form, validate it directly
+  if (!validateVaultSecurityPin(enteredPin)) {
+    if (UI.inputSecurityPin) {
+      UI.inputSecurityPin.classList.add('shake-error');
+      setTimeout(() => UI.inputSecurityPin.classList.remove('shake-error'), 450);
+    }
+    if (window.ninjaAudio) window.ninjaAudio.riskAlert();
+    showNinjaToast('❌ Incorrect Vault PIN / Password! Authorization Denied.', 'error');
+    return;
+  }
+
+  // 3. PIN valid: Proceed
+  continueTransferExecution(payload);
+}
+
+function continueTransferExecution(payload) {
   const level = NinjaState.currentRiskAssessment ? NinjaState.currentRiskAssessment.riskLevel : 'LOW';
 
   if (level === 'HIGH') {
-    if (UI.inputRiskPwd) UI.inputRiskPwd.value = '';
+    if (UI.inputRiskPwd) UI.inputRiskPwd.value = payload.riskPassword || '';
     openModal(UI.modalHigh);
     if (window.ninjaAudio) window.ninjaAudio.riskAlert();
   } else if (level === 'MEDIUM') {

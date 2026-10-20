@@ -348,6 +348,25 @@
               <button type="button" class="btn-ninja btn-ninja-ghost btn-xs" data-quick-amount="150000">+₹1,50,000</button>
             </div>
 
+            <!-- Secret Transaction PIN / Password -->
+            <div class="form-group" style="margin-bottom: 18px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" for="txn-security-pin" style="margin-bottom: 0;">
+                  🔒 Secret Vault PIN / Password
+                </label>
+                <span style="font-size: 0.72rem; color: var(--chakra-cyan); font-family: var(--font-mono);">
+                  Required for Transfer (Default: 1234)
+                </span>
+              </div>
+              <div class="input-icon-ninja" style="position: relative;">
+                <span class="input-icon-glyph">🔑</span>
+                <input type="password" id="txn-security-pin" class="form-control-ninja font-mono font-bold" placeholder="Enter 4-digit PIN (default: 1234)" required autocomplete="current-password">
+                <button type="button" id="btn-toggle-pin-visibility" title="Show/Hide PIN" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 4px;">
+                  👁️
+                </button>
+              </div>
+            </div>
+
             <!-- DETERMINISTIC NINJA RISK RADAR & SENTINEL HUD -->
             <div class="sentinel-hud-container">
               <div class="hud-top-meta">
@@ -468,6 +487,49 @@
   <!-- ========================================================================= -->
   <!-- MODALS SYSTEM                                                             -->
   <!-- ========================================================================= -->
+
+  <!-- MODAL 0: SHINOBI VAULT PIN / PASSWORD AUTHORIZATION (UPI PIN STYLE) -->
+  <div class="modal-veil" id="modal-pin-authorization">
+    <div class="modal-scroll-box" style="text-align: center;">
+      <button class="modal-close-cross">×</button>
+      <div style="font-size: 2.2rem; margin-bottom: 6px;">🔐</div>
+      <h3 style="font-size: 1.35rem; color: var(--text-pure); margin-bottom: 6px;">Authorize Vault Transfer</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+        Enter your secret 4-digit PIN or password to release funds from vault.
+      </p>
+
+      <!-- Transfer Summary Pill -->
+      <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px; text-align: left;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="font-size: 0.75rem; color: var(--text-muted);">TRANSFER AMOUNT:</span>
+          <strong id="auth-modal-amount" style="font-family: var(--font-cyber); color: var(--shuriken-green); font-size: 1.05rem;">₹5,000.00</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="font-size: 0.75rem; color: var(--text-muted);">TARGET VAULT:</span>
+          <strong id="auth-modal-target" style="font-family: var(--font-mono); color: var(--text-pure);">ACC-2002</strong>
+        </div>
+      </div>
+
+      <div class="form-group" style="text-align: left; margin-bottom: 18px;">
+        <label class="form-label" for="auth-modal-pin-input">Secret Vault PIN / Password</label>
+        <div class="input-icon-ninja" style="position: relative;">
+          <span class="input-icon-glyph">🔑</span>
+          <input type="password" id="auth-modal-pin-input" class="form-control-ninja font-mono font-bold text-center text-lg" placeholder="••••" maxlength="32" autofocus>
+          <button type="button" id="btn-toggle-modal-pin" title="Show/Hide PIN" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 4px;">
+            👁️
+          </button>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-stealth); margin-top: 6px;">
+          Default demo PIN is <strong style="color: var(--chakra-cyan);">1234</strong> or your account password.
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn-ninja btn-ninja-ghost w-100" id="btn-auth-pin-cancel">Abort</button>
+        <button type="button" class="btn-ninja btn-ninja-primary w-100" id="btn-auth-pin-submit">Authorize &amp; Send ⚔️</button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL 1: MEDIUM RISK CONFIRMATION -->
   <div class="modal-veil" id="modal-confirm-medium">
